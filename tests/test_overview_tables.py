@@ -25,7 +25,7 @@ class OverviewTables(unittest.TestCase):
         self.assertEqual(p['CAT4 eligible (n)'].iloc[0],2)
     def test_compact_keeps_only_requested_columns(self):
         a,p,g=summary_tables(self.fixture())
-        self.assertEqual(list(compact_table(a,('category',),'attainment').columns), ['category','Students with grades','Grade results (n)','% Meeting or above','% Exceeding','KHDA grade'])
+        self.assertEqual(list(compact_table(a,('category',),'attainment').columns), ['Subject','Number','% Meeting+','% Exceeding','KHDA grade'])
         self.assertFalse('Less · n' in compact_table(p,('category',),'progress').columns)
 
 if __name__=='__main__':unittest.main()

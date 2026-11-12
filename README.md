@@ -64,3 +64,7 @@ The School Overview and Subject Analysis now use **two tabs**, Attainment and Pr
 - **Interpretation:** `Students with grades` counts unique students; `Grade results (n)` counts valid subject-assessment records. These can differ for combined categories. `Target-predicted` is the proportion of the valid standard-target grades that are at or above the curriculum threshold, not a forecast made by an AI model. The target-hit measures use their own eligible current-grade/target pairs, which may have different denominators from progress.
 
 The school reports and data-pack generation are **not** changed by this version. The production access-control and security work remains outstanding; synthetic/anonymised data only.
+
+### v1.3 phase filtering
+
+The expandable **Filters** panel now includes a multi-select **Phases** filter: Phase 1 (FS1–FS2, planned for Version 2), Phase 2 (Years 1–6), Phase 3 (Years 7–11), and Phase 4 (Years 12–13). This works together with the existing year-group, subject and student-group filters across all dashboard modules. Phase 1 is selectable but has no EYFS data processing in this release.

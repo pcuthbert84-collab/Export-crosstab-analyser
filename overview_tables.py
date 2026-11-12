@@ -94,13 +94,33 @@ def summary_tables(data, by=('category',), method='pooled'):
     return pd.DataFrame(attainment_rows),pd.DataFrame(progress_rows),pd.DataFrame(grade_rows)
 
 
+def rename_presentational_columns(df):
+    rename = {
+        'category':'Subject',
+        'subject':'Subject',
+        'year':'Year',
+        'Students with grades':'Number',
+        'Students with both grades':'Number',
+        '% Meeting or above':'% Meeting+',
+        '% Exceeding':'% Exceeding',
+        '% Expected or better':'% Expected+',
+        '% Better than expected':'% Better+',
+        'KHDA grade':'KHDA grade',
+    }
+    cols = [rename.get(c, c) for c in df.columns]
+    out = df.copy()
+    out.columns = cols
+    return out
+
+
 def compact_table(table, by, mode):
-    cols=list(by)+(['Students with grades','Grade results (n)','% Meeting or above','% Exceeding','KHDA grade']
-        if mode=='attainment' else ['Students with both grades','Progress results (n)','% Expected or better','% Better than expected','KHDA grade'])
-    return table.reindex(columns=cols)
+    cols=list(by)+(['Students with grades','% Meeting or above','% Exceeding','KHDA grade']
+        if mode=='attainment' else ['Students with both grades','% Expected or better','% Better than expected','KHDA grade'])
+    return rename_presentational_columns(table.reindex(columns=cols))
 
 
 def detail_table(table, by, mode):
-    core=list(compact_table(table,by,mode).columns)
+    core=list(by)+(['Students with grades','% Meeting or above','% Exceeding','KHDA grade']
+        if mode=='attainment' else ['Students with both grades','% Expected or better','% Better than expected','KHDA grade'])
     extra=[c for c in table.columns if c not in core]
-    return table[core+extra]
+    return rename_presentational_columns(table[core+extra])

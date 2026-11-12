@@ -73,6 +73,26 @@ def display_kpis(summary):
         # A single category chart is not an official pooled whole-school aggregate.
         panel.metric(label,f'{vals.iloc[0]:.0f}%' if len(vals)==1 else 'See breakdown')
 
+
+def judgement_row_style(df):
+    color_map = {
+        'Outstanding': '#cfe2ff',
+        'Very Good': '#d9ead3',
+        'Good': '#fff2cc',
+        'Acceptable': '#fce5cd',
+        'Weak': '#f4cccc',
+    }
+    khda_col = 'KHDA grade' if 'KHDA grade' in df.columns else None
+    def style_row(row):
+        grade = row.get(khda_col, '') if khda_col else ''
+        bg = color_map.get(grade, '')
+        return [f'background-color: {bg}' if bg else '' for _ in row]
+    return df.style.apply(style_row, axis=1)
+
+
+def show_table(df, height=None):
+    st.dataframe(judgement_row_style(df), hide_index=True, use_container_width=True, height=height)
+
 st.title('DBSJP Data Intelligence')
 st.caption('V1 prototype · Subject analysis · PPM & Interventions · Group analysis · CAT4 & Value Added · Session-only data')
 st.info('DEVELOPMENT PROTOTYPE: Use fictional or properly anonymised data only. Microsoft 365 access controls and approved live-data hosting are not implemented. Do not upload identifiable student records to a public Streamlit Community Cloud deployment.',icon='🔒')
@@ -135,6 +155,8 @@ computed=derive(records,base,None if base2=='None' else base2,cur,None if cur2==
 if computed.empty:st.warning('No calculations available.');st.stop()
 
 with st.expander('Filters',expanded=False):
+    phase_labels = {1:'Phase 1 · FS1–FS2 (Version 2)', 2:'Phase 2 · Years 1–6', 3:'Phase 3 · Years 7–11', 4:'Phase 4 · Years 12–13'}
+    selected_phases=st.multiselect('Phases',options=[1,2,3,4],default=[1,2,3,4],format_func=lambda p:phase_labels[p],help='Select one or more school phases. Phase 1 (EYFS) data processing is planned for Version 2.')
     selected_years=st.multiselect('Year groups',sorted(computed.year.unique()),default=sorted(computed.year.unique()))
     selected_cats=st.multiselect('Subject categories',sorted(computed.category.unique()),default=sorted(computed.category.unique()))
     selected_subs=st.multiselect('Individual subjects',sorted(computed.subject.unique()),default=sorted(computed.subject.unique()))
@@ -148,9 +170,14 @@ with st.expander('Filters',expanded=False):
             choice=st.multiselect(col,values,key=f'gf_{col}')
             if choice:group_filters[col]=choice
 
-data=computed[computed.year.isin(selected_years)&computed.category.isin(selected_cats)&computed.subject.isin(selected_subs)].copy()
+data=computed[computed.phase.isin(selected_phases)&computed.year.isin(selected_years)&computed.category.isin(selected_cats)&computed.subject.isin(selected_subs)].copy()
 for col,choices in group_filters.items():data=data[data[col].astype(str).isin(choices)]
-if data.empty:st.warning('No subject results match these filters.');st.stop()
+if data.empty:
+    if selected_phases==[1]:
+        st.info('Phase 1 (FS1–FS2) has been selected. EYFS assessment processing will be added in Version 2, so no Phase 1 results are available in this version.')
+    else:
+        st.warning('No subject results match the selected phase, year group, subject and student-group filters.')
+    st.stop()
 
 # Suppress duplicate Reading and Writing records in the combined English headline only.
 combined=pd.concat([data[data.category!='English'],english_overlap(data)],ignore_index=True)
@@ -166,7 +193,7 @@ def clean_performance_tables(source, by, selector_key):
     with t_att:
         mode=st.radio('Table view',['Compact','Detailed'],horizontal=True,key=f'{selector_key}_att_view')
         shown=compact_table(att,by,'attainment') if mode=='Compact' else detail_table(att,by,'attainment')
-        st.dataframe(shown,hide_index=True,use_container_width=True,height=min(580,95+len(shown)*36))
+        show_table(shown,height=min(580,95+len(shown)*36))
         if mode=='Detailed':
             st.caption('Grade columns show the number of valid current results in each recorded grade. Target-predicted percentages use valid standard target grades, not current results.')
             with st.expander('Grade counts and percentages (one row per grade)'):
@@ -175,7 +202,7 @@ def clean_performance_tables(source, by, selector_key):
     with t_prog:
         mode=st.radio('Table view',['Compact','Detailed'],horizontal=True,key=f'{selector_key}_prog_view')
         shown=compact_table(prog,by,'progress') if mode=='Compact' else detail_table(prog,by,'progress')
-        st.dataframe(shown,hide_index=True,use_container_width=True,height=min(580,95+len(shown)*36))
+        show_table(shown,height=min(580,95+len(shown)*36))
         if mode=='Detailed':
             st.caption('Progress counts require valid, comparable baseline and current grades. CAT4 percentages use only results with the relevant target, so denominators may differ.')
             with st.expander('Current grade counts and percentages'):
