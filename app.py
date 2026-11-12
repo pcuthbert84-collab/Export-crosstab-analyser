@@ -10,6 +10,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from engine import parse_dcpro, derive, summarise, english_overlap, GROUP_FIELDS
+from overview_tables import summary_tables, compact_table, detail_table
 
 st.set_page_config(page_title='DBSJP Data Intelligence',page_icon='📊',layout='wide',initial_sidebar_state='expanded')
 st.markdown('''<style>
@@ -155,27 +156,43 @@ if data.empty:st.warning('No subject results match these filters.');st.stop()
 combined=pd.concat([data[data.category!='English'],english_overlap(data)],ignore_index=True)
 met=('unweighted' if method.startswith('Unweighted') else 'pooled')
 
+def clean_performance_tables(source, by, selector_key):
+    """Compact/detailed attainment and progress, each using its own valid denominator."""
+    att,prog,grade_dist=summary_tables(source,by,met)
+    if att.empty:
+        st.info('No results match the current filters.')
+        return
+    t_att,t_prog=st.tabs(['Attainment','Progress'])
+    with t_att:
+        mode=st.radio('Table view',['Compact','Detailed'],horizontal=True,key=f'{selector_key}_att_view')
+        shown=compact_table(att,by,'attainment') if mode=='Compact' else detail_table(att,by,'attainment')
+        st.dataframe(shown,hide_index=True,use_container_width=True,height=min(580,95+len(shown)*36))
+        if mode=='Detailed':
+            st.caption('Grade columns show the number of valid current results in each recorded grade. Target-predicted percentages use valid standard target grades, not current results.')
+            with st.expander('Grade counts and percentages (one row per grade)'):
+                st.dataframe(grade_dist,hide_index=True,use_container_width=True)
+        st.download_button('Download attainment Excel',ebytes(shown),'DBSJP_Attainment.xlsx',key=f'{selector_key}_att_dl')
+    with t_prog:
+        mode=st.radio('Table view',['Compact','Detailed'],horizontal=True,key=f'{selector_key}_prog_view')
+        shown=compact_table(prog,by,'progress') if mode=='Compact' else detail_table(prog,by,'progress')
+        st.dataframe(shown,hide_index=True,use_container_width=True,height=min(580,95+len(shown)*36))
+        if mode=='Detailed':
+            st.caption('Progress counts require valid, comparable baseline and current grades. CAT4 percentages use only results with the relevant target, so denominators may differ.')
+            with st.expander('Current grade counts and percentages'):
+                st.dataframe(grade_dist,hide_index=True,use_container_width=True)
+        st.download_button('Download progress Excel',ebytes(shown),'DBSJP_Progress.xlsx',key=f'{selector_key}_prog_dl')
+    st.caption('Number of students counts unique students with eligible grades. Grade results count assessment records; combined categories can contain multiple results for one student. A KHDA judgement requires at least five valid results.')
+
 if view=='School Overview':
     st.header('School overview')
-    st.caption('Figures cover the uploaded year groups only; incomplete uploads are never labelled whole-school totals.')
-    tab=summarise(combined,('category',),met)
-    st.dataframe(tab,hide_index=True,use_container_width=True)
-    chart=tab.dropna(subset=['at_or_above'])
-    if not chart.empty:
-        st.plotly_chart(px.bar(chart,x='category',y=['at_or_above','above'],barmode='group',title='Attainment by category',labels={'value':'Percent','category':'Subject category'}),use_container_width=True)
-    st.download_button('Download overview Excel',ebytes(tab),'DBSJP_Overview.xlsx')
+    st.caption('Results for uploaded year groups only — not automatically whole-school totals.')
+    clean_performance_tables(combined,('category',),'overview')
 elif view=='Subject Analysis':
     st.header('Subject analysis')
-    scope=st.radio('Show results by',['Subject','Category','Year group'],horizontal=True)
-    by={'Subject':('subject','year'),'Category':('category','year'),'Year group':('year','category')}[scope]
-    targetdata=data if scope=='Subject' else combined
-    tab=summarise(targetdata,by,met)
-    st.dataframe(tab,hide_index=True,use_container_width=True)
-    if not tab.empty:
-        x=by[0]
-        good=tab.dropna(subset=['at_or_above'])
-        if not good.empty:st.plotly_chart(px.bar(good,x=x,y=['at_or_above','above'],barmode='group',title='Attainment',labels={'value':'%'}),use_container_width=True)
-    st.download_button('Download subject analysis Excel',ebytes(tab),'DBSJP_Subject_Analysis.xlsx')
+    scope=st.radio('Break down by',['Subject and year','Category and year','Year and category'],horizontal=True)
+    by={'Subject and year':('subject','year'),'Category and year':('category','year'),'Year and category':('year','category')}[scope]
+    targetdata=data if scope=='Subject and year' else combined
+    clean_performance_tables(targetdata,by,'subject')
 elif view=='PPM & Interventions':
     st.header('PPM & Interventions')
     st.caption('Individual results, not a diagnosis or automated risk score. Several concern indicators may overlap.')

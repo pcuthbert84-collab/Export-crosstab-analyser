@@ -51,3 +51,16 @@ python -m unittest discover -s tests -v
 - Data Pack PDF based on the uploaded 2025–26 87-table Word template, historical pack import, blank-table export toggle.
 - Optional EYFS and external tests including NGRT.
 - Microsoft Entra ID / Microsoft 365 authentication, role-based access, school-approved deployment and compliance review.
+
+## Version 1.1 — Cleaner performance tables
+
+The School Overview and Subject Analysis now use **two tabs**, Attainment and Progress, with a **Compact / Detailed** choice within each tab.
+
+- **Compact Attainment:** valid student count, valid assessment-record count, meeting-or-above %, exceeding %, KHDA-style judgement.
+- **Detailed Attainment:** adds a count for each recorded current grade, plus percentages *predicted from target grades* to be meeting-or-above and exceeding, and the number of valid target results.
+- **Compact Progress:** students with comparable baseline and current grades, eligible progress-record count, expected-or-better %, better %, and KHDA-style judgement.
+- **Detailed Progress:** adds numbers classified Less / Expected / Better, current grade counts, Met CAT4 %, Met Challenge Target % and eligible target counts.
+- Whole percentages are displayed with half-up rounding. Categories with no valid current or progress results are hidden from these presentation tables. Excel buttons export the currently selected view.
+- **Interpretation:** `Students with grades` counts unique students; `Grade results (n)` counts valid subject-assessment records. These can differ for combined categories. `Target-predicted` is the proportion of the valid standard-target grades that are at or above the curriculum threshold, not a forecast made by an AI model. The target-hit measures use their own eligible current-grade/target pairs, which may have different denominators from progress.
+
+The school reports and data-pack generation are **not** changed by this version. The production access-control and security work remains outstanding; synthetic/anonymised data only.
