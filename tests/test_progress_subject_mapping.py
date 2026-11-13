@@ -77,11 +77,11 @@ def test_cross_grade_anchor():
     assert s1.progress=='Expected' # Year6 ME -> Year7 GCSE 4
 
 
-def test_unsupported_average_flags_not_guess():
+def test_newly_approved_average_uses_both_sources():
     data=setup_data()
     data.loc[(data.student_id=='S1')&(data.year==6)&(data.subject=='Writing'),'DP3 CPL / AG 2025/26']='EX'
     data.loc[(data.student_id=='S1')&(data.year==7),'DP1 CPL / AG 2026/27']='4'
     r,a=apply_subject_mappings(derived(data),data,{(7,'English'):['Reading','Writing']},'DP3 CPL / AG 2025/26')
     s1=r[(r.student_id=='S1')&(r.year==7)].iloc[0]
-    assert pd.isna(s1.progress)
-    assert 'Needs conversion' in a.status.values
+    assert s1.progress=='Less'
+    assert 'Mapped' in a.status.values

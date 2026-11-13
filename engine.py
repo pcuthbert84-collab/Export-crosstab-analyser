@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 import pandas as pd
 from science_grade_conversions import science_equivalence
+from english_grade_conversions import english_equivalence
 
 KS3_POINTS = {'WT-':1,'WT':2,'WT+':3,'ME-':4,'ME':5,'ME+':6,'EX-':7,'EX':8,'MA':9}
 GCSE_POINTS = {str(i):float(i) for i in range(1,10)} | {'U':0.0}
@@ -130,9 +131,12 @@ def progress(baseline, current, current_year=None, baseline_year=None, subject=N
     if not baseline or not current:return None
     # Approved transition exception, user explicitly confirmed KS3 ME → GCSE 4 expected.
     approved_science_expected = science_equivalence(baseline, current, subject)
+    approved_english_expected = english_equivalence(baseline, current, subject)
     expected = baseline.point
     if approved_science_expected is not None:
         expected = approved_science_expected
+    elif approved_english_expected is not None:
+        expected = approved_english_expected
     elif baseline.kind=='descriptor' and current.kind=='gcse':
         if baseline.level=='ME':expected=4
         elif baseline.level=='ME+':expected=6

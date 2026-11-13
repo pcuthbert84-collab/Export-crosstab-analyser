@@ -30,8 +30,9 @@ def test_science_progress_examples(baseline,actual,expected):
     assert progress(parse_grade(baseline),parse_grade(actual),10,9,subject='Science - Combined')==expected
 
 def test_non_science_unapproved_conversions_unchanged():
+    # English is now independently approved; unrelated subjects stay unchanged.
     for label in ('WT-', 'WT', 'WT+', 'ME-', 'EX-', 'EX', 'MA'):
-        assert progress(parse_grade(label),parse_grade('4'),10,9,subject='English') is None
+        assert progress(parse_grade(label),parse_grade('4'),10,9,subject='Mathematics') is None
         assert progress(parse_grade(label),parse_grade('4, 4'),10,9,subject='English') is None
     assert progress(parse_grade('ME'),parse_grade('4'),10,9,subject='English') == 'Expected'
     assert progress(parse_grade('ME+'),parse_grade('6'),10,9,subject='English') == 'Expected'
@@ -45,7 +46,7 @@ def test_direct_science_rows_convert_without_changing_attainment():
                           'source':'synthetic',BASE:'ME-',CUR:'3'}])
     computed=derive(record,BASE,None,CUR,None,None,None)
     assert computed.loc[computed.subject.eq('Science'),'progress'].iloc[0]=='Expected'
-    assert pd.isna(computed.loc[computed.subject.eq('English'),'progress'].iloc[0])
+    assert computed.loc[computed.subject.eq('English'),'progress'].iloc[0]=='Expected'
 
 
 def test_same_cohort_mapping_science_pairs_and_non_science_unchanged():

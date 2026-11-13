@@ -47,8 +47,8 @@ class TestSameCohortMapping(unittest.TestCase):
         df=fixture();out=derive(df,BASE,EXAM,CUR,None,None,None)
         after,audit=apply_same_cohort_mappings(out,df,{(7,'English'):['Reading']},BASE,EXAM)
         self.assertEqual(after[(after.year==7)&(after.student_id=='s2')&(after.subject=='English')].iloc[0].progress,'Expected')
-        self.assertIsNone(after[(after.year==7)&(after.student_id=='s3')&(after.subject=='English')].iloc[0].progress)
-        self.assertIn('Needs approved conversion',audit.status.tolist())
+        self.assertEqual(after[(after.year==7)&(after.student_id=='s3')&(after.subject=='English')].iloc[0].progress,'Better')
+        self.assertEqual(audit.status.tolist(),['Mapped','Mapped'])
 
     def test_existing_baseline_never_overridden(self):
         df=fixture();out=derive(df,BASE,EXAM,CUR,None,None,None)

@@ -68,6 +68,8 @@ def apply_same_cohort_mappings(calculated: pd.DataFrame, records: pd.DataFrame,
         updated['progress_baseline_mapping'] = None
     if 'progress_baseline_sources' not in updated.columns:
         updated['progress_baseline_sources'] = None
+    if 'progress_source_status' not in updated.columns:
+        updated['progress_source_status'] = None
     audit=[]
     if updated.empty or records.empty or not mappings:
         return updated, pd.DataFrame(audit)
@@ -102,9 +104,11 @@ def apply_same_cohort_mappings(calculated: pd.DataFrame, records: pd.DataFrame,
             points.append(equivalent)
             descriptions.append(f'{source}: {grade.raw} ({field})')
         if unsupported:
+            updated.at[idx,'progress_source_status']='Source grade found; conversion not approved'
             audit.append({'year':year,'subject':sub,'status':'Needs approved conversion','count':1})
             continue
         if not points:
+            updated.at[idx,'progress_source_status']='No selected source grade'
             audit.append({'year':year,'subject':sub,'status':'No selected source grade','count':1})
             continue
         mean=sum(points)/len(points)
@@ -113,6 +117,7 @@ def apply_same_cohort_mappings(calculated: pd.DataFrame, records: pd.DataFrame,
         updated.at[idx,'baseline_grade']='Mean of mapped grades' if len(points)>1 else descriptions[0].split(' (')[0]
         updated.at[idx,'baseline_source']=f'Same-cohort prior assessment ({baseline}; fallback {fallback or "none"})'
         updated.at[idx,'progress_baseline_mapping']='Same-cohort mapped subject'
+        updated.at[idx,'progress_source_status']='Mapped'
         updated.at[idx,'progress_baseline_sources']='; '.join(descriptions)
         concerns=[s.strip() for s in str(r.get('concerns') or '').split(',') if s.strip()]
         if result=='Less' and 'Less progress' not in concerns:

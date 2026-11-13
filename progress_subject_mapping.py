@@ -10,6 +10,7 @@ from dataclasses import replace
 import pandas as pd
 from engine import Grade, parse_grade, select_grade, progress
 from science_grade_conversions import science_equivalence
+from english_grade_conversions import english_equivalence
 
 
 def grade_kind(subject: str, year: int) -> str:
@@ -66,6 +67,9 @@ def _baseline_equivalent_point(grade: Grade, current: Grade, enrolled_prior_year
     approved_science = science_equivalence(grade, current, subject)
     if approved_science is not None:
         return float(approved_science)
+    approved_english = english_equivalence(grade, current, subject)
+    if approved_english is not None:
+        return float(approved_english)
     if grade.kind==current.kind:
         if grade.kind=='descriptor' and grade.curriculum_year is not None and grade.curriculum_year!=enrolled_prior_year:
             # The different curriculum-year prefix needs a separate approved mapping.
@@ -102,6 +106,8 @@ def apply_subject_mappings(
     updated=calculated.copy()
     updated['progress_baseline_mapping'] = None
     updated['progress_baseline_sources'] = None
+    if 'progress_source_status' not in updated.columns:
+        updated['progress_source_status'] = None
     audit=[]
     if not mappings or records.empty or updated.empty:
         return updated,pd.DataFrame(audit)
@@ -133,10 +139,12 @@ def apply_subject_mappings(
             points.append(equivalent)
             used.append((source_subject,g.raw,field))
         if unsupported:
+            updated.at[idx,'progress_source_status']='Source grade found; conversion not approved'
             audit.append({'student_id':student,'year':year,'subject':subject,'status':'Needs conversion',
                           'details':'; '.join(unsupported)})
             continue
         if not points:
+            updated.at[idx,'progress_source_status']='No selected source grade'
             continue
         mean=sum(points)/len(points)
         result=_mapped_progress(current,mean)
@@ -145,6 +153,7 @@ def apply_subject_mappings(
         updated.at[idx,'baseline_source']=f'Year {year-1} · mapped subject(s)'
         updated.at[idx,'progress']=result
         updated.at[idx,'progress_baseline_mapping']='Average of mapped subjects' if len(used)>1 else 'Mapped single subject'
+        updated.at[idx,'progress_source_status']='Mapped'
         updated.at[idx,'progress_baseline_sources']='; '.join(f'{s} ({g}, {field})' for s,g,field in used)
         # Retain existing grade-decline and VA calculations rather than comparing
         # the new baseline mean as a literal original grade.

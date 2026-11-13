@@ -1,3 +1,5 @@
+> **Version 3.1:** English descriptor conversions and corrected progress-coverage audit. See `RELEASE_v3_1.md` and `ENGLISH_GRADE_CONVERSION_APPROVAL.md`.
+
 ## Version 3.0 — Science-only grade conversions
 
 Approved Science WT- through MA equivalences now apply to numeric GCSE and paired Combined Science progress, including the previously approved Year 9 -> 10 source-subject mappings. See `SCIENCE_GRADE_CONVERSION_APPROVAL.md` for the full table, local audit results and the existing high-grade policy caveat. No identifiable source data is included.

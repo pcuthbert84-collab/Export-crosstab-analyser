@@ -258,7 +258,7 @@ with st.expander('2 · Assessment and target settings',expanded=True):
     a,b=st.columns(2)
     with a:tar=st.selectbox('Standard CAT4 target',['None']+targets,index=next((i+1 for i,t in enumerate(targets) if t.lower().startswith('target')),0))
     with b:cha=st.selectbox('CAT4 75 · Challenge target',['None']+targets,index=1+auto_select(targets,'Challenge') if targets else 0)
-    st.caption('Science-only approved descriptor-to-GCSE conversions are available, including Combined Science pairs. Other unsupported cross-grade-set comparisons remain unclassified.')
+    st.caption('Approved Science and English descriptor-to-GCSE conversions are available; Science also supports Combined Science pairs. Other unsupported cross-grade-set comparisons remain unclassified.')
 
 # Repository-controlled approval library, never stores student data.
 try:
@@ -369,7 +369,7 @@ with st.expander('Optional · Match previous grades within the same cohort expor
                 if enabled and selected:
                     same_rules[(selected_candidate['year'],selected_candidate['subject'])]=selected
                 elif enabled:st.warning('Choose at least one previous-assessment subject.')
-        st.caption('Science has approved descriptor-to-GCSE and paired Combined Science equivalences. Other unsupported descriptor conversions remain outside progress percentages until approved.')
+        st.caption('Science and English have approved descriptor-to-GCSE equivalences; Science also supports paired Combined Science. Other subjects remain unclassified without approved conversions.')
 if same_rules:
     same_key=fingerprint(mapped_key,sorted((y,s,tuple(v)) for (y,s),v in same_rules.items()))
     computed,same_audit=reuse(st.session_state,'same_cohort_mapped',same_key,
@@ -418,10 +418,10 @@ if current_n and progress_n < current_n:
     st.info(f'**Progress coverage:** {progress_n:,} of {current_n:,} current-grade assessment results have a classified progress comparison ({100*progress_n/current_n:.0f}%). Some records are excluded because a baseline is missing or grade equivalence is unapproved. Expand the Progress coverage panel to review the exclusions by year and subject.')
 
 with st.expander('Progress coverage and excluded results · check before using progress judgements', expanded=(view=='School Overview')):
-    st.caption('Counts show distinct students with a valid CURRENT grade, not total enrolment. Unclassified progress is excluded from KHDA-style progress percentages; missing baselines and unsupported grade conversions are shown separately.')
+    st.caption('Counts show distinct students with a valid CURRENT grade, not total enrolment. A mapped source grade with unsupported conversion is counted under conversion, NOT missing baseline. The baseline-and-current column counts matched baseline grade fields only; mapped-source evidence is accounted for separately.')
     audit=progress_coverage(combined,by=('year','category'))
     if not audit.empty:
-        cols=['year','category','Students with current grade','Students with baseline and current','Progress classified','Current grade, baseline missing','Grade conversion not approved','From optional mapping','% progress coverage']
+        cols=['year','category','Students with current grade','Students with baseline and current','Progress classified','Current grade, baseline missing','Grade conversion not approved','Source found but conversion blocked','From optional mapping','% progress coverage']
         audit=audit[cols].rename(columns={'year':'Year','category':'Subject'})
         st.dataframe(audit,hide_index=True,use_container_width=True)
         low=audit.loc[(audit['Students with current grade']>=5)&(audit['% progress coverage']<75)]
