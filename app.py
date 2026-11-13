@@ -5,6 +5,7 @@ Entra authentication, authorisation and security review have been completed.
 """
 from __future__ import annotations
 import io
+import hashlib
 import re
 from datetime import datetime
 from html import escape
@@ -17,6 +18,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 
 from engine import parse_dcpro, derive, summarise, GROUP_FIELDS
+from year_detection import suggest_year
 from overview_tables import summary_tables, compact_table, detail_table
 from dashboard_analytics import (
     PHASES, combined_assessments, filtered_cohort_summary, coverage_status,
@@ -156,10 +158,19 @@ for i,file in enumerate(uploads):
         sheets=load_excel(file.getvalue())
     except Exception:
         st.error(f'{file.name}: Could not read a valid Excel workbook.');continue
-    with st.expander(f'{file.name} · {len(sheets)} worksheet(s)',expanded=len(uploads)==1):
-        suggested=guessed_year(file.name)
-        year=st.selectbox('Year group',range(1,14),index=suggested-1,key=f'upload_year_{i}',help='Please confirm; the file name is not an authoritative year-group source.')
+    with st.expander(f'{file.name} · {len(sheets)} worksheet(s)',expanded=True):
         selected_sheets=st.multiselect('Worksheets to include',[name for name,_ in sheets],default=[sheets[0][0]],key=f'upload_sheets_{i}')
+        active_sheets=[(name,df) for name,df in sheets if name in selected_sheets]
+        guess=suggest_year(file.name,active_sheets)
+        options=['Please select']+list(range(1,14))
+        default_idx=guess.year if guess.year is not None else 0
+        year_key=hashlib.sha256(file.getvalue()).hexdigest()[:12]
+        sheet_key=hashlib.sha256('|'.join(sorted(selected_sheets)).encode()).hexdigest()[:8]
+        year=st.selectbox('Confirm year group',options,index=default_idx,key=f'upload_year_{i}_{year_key}_{sheet_key}',help='Automatically suggested from class codes, year-group columns or filename; always confirm. A workbook must represent one enrolled year group.')
+        st.caption(f'Year-group suggestion: {guess.note}')
+        if year=='Please select':
+            st.warning('Choose a year group above before this workbook is included in the analysis.')
+            continue
         for sheet,df in sheets:
             if sheet in selected_sheets:
                 st.caption(f'{sheet}: {len(df):,} source rows · {len(df.columns):,} columns')
@@ -197,7 +208,7 @@ computed=derive(records,base,None if base2=='None' else base2,cur,None if cur2==
 if computed.empty:
     st.info('No assessment outcomes were found with the selected configuration.');st.stop()
 
-with st.expander('3 · Filters · phase, year, subject and groups',expanded=False):
+with st.expander('3 · Filters · phase, year, subject and groups',expanded=True):
     present_phases=sorted(int(x) for x in computed.phase.dropna().unique())
     left,right=st.columns([1,2])
     with left:

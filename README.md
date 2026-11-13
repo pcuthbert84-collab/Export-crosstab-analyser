@@ -70,3 +70,13 @@ The final local run passed **31 Python tests**, plus 6 subtests, and an end-to-e
 ## Production security work required before live use
 
 School-approved hosting and data region; Entra sign-in with MFA; server-side role and subject/year/class permissions; download restrictions; safe audit logs; per-session memory isolation; upload malware/content scanning and limits; deletion testing; privacy impact assessment; independent penetration/security assessment; school approval.
+
+### Version 2.1 — Year-group confirmation improvements
+
+- Each uploaded workbook's year-group confirmation panel now opens by default.
+- The app suggests the enrolled year from recurring DCPro subject-class codes (e.g., `8JPT`, `11A`, `12I`), then from a dedicated Year Group column or clear file/sheet name.
+- It deliberately does **not** infer the enrolled year from curriculum grade prefixes or an academic-year label such as `2026/27`.
+- Ambiguous or unknown years require manual selection, rather than silently defaulting to Year 8.
+- Users can still override the suggestion. Every workbook should contain only one enrolled year group.
+- The main phase/year/subject filter panel also opens by default.
+- All existing assessment calculations, subject and PPM views remain unchanged.
