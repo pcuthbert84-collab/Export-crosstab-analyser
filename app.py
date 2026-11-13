@@ -21,6 +21,8 @@ from engine import parse_dcpro, derive, summarise, GROUP_FIELDS
 from session_performance import fingerprint, reuse, clear_private
 from year_detection import suggest_year
 from progress_subject_mapping import mapping_candidates, apply_subject_mappings
+from same_cohort_mapping import same_cohort_candidates, apply_same_cohort_mappings
+from progress_coverage import progress_coverage
 from transition_library import load_library, find_rule, proposal, proposal_download, normalise_subject
 from overview_tables import summary_tables, compact_table, detail_table
 from dashboard_analytics import (
@@ -156,7 +158,7 @@ def narrative_findings(s):
 with st.sidebar:
     st.markdown('<div class="db-eyebrow">DUBAI BRITISH SCHOOL</div>',unsafe_allow_html=True)
     st.markdown('### Data Intelligence')
-    st.caption('Leadership dashboard · v2.5 · responsive')
+    st.caption('Leadership dashboard · v2.6 · progress audit')
     st.divider()
     view=st.radio('Explore', [x[0] for x in NAV_ITEMS],index=0)
     st.divider()
@@ -326,6 +328,41 @@ if mapping_rules:
         with st.expander('Mappings requiring conversion review'):
             st.dataframe(mapping_audit.loc[mapping_audit.status!='Mapped'],hide_index=True,use_container_width=True)
 
+# A DCPro current-year export can contain a *prior assessment* under a different
+# subject heading. This is not a match to the other cohort's current workbook.
+with st.expander('Optional · Match previous grades within the same cohort export', expanded=False):
+    st.caption('Example: Year 7 English current grade with last year’s Reading/Writing grades in the Year 7 export, or Year 11 English with an English Language prior exam grade. Only applies if explicitly enabled; grade conversions must be approved.')
+    candidates=reuse(st.session_state,'same_cohort_candidates',fingerprint(calc_key,mapped_key),
+        lambda:same_cohort_candidates(records,computed,base,None if base2=='None' else base2))
+    if not candidates:
+        st.info('No same-cohort subject transition candidates were detected for the selected assessments.')
+        same_rules={}
+    else:
+        names=[f"Year {c['year']} · {c['subject']} ({c['missing']} current students without a baseline)" for c in candidates]
+        selected_targets=st.multiselect('Choose the subject transitions to configure',range(len(candidates)),
+            format_func=lambda i:names[i],key='same_cohort_mapping_focus')
+        same_rules={}
+        for choice_index in selected_targets:
+            selected_candidate=candidates[choice_index]
+            options=[x['subject'] for x in selected_candidate['sources']]
+            with st.container(border=True):
+                st.markdown(f"**Year {selected_candidate['year']} · {selected_candidate['subject']}**")
+                st.caption('Prior-assessment subjects in this same cohort: '+', '.join(f"{x['subject']} ({x['students']})" for x in selected_candidate['sources']))
+                unique=f"{selected_candidate['year']}_{hashlib.sha256(selected_candidate['subject'].encode()).hexdigest()[:8]}"
+                selected=st.multiselect('Choose previous-assessment subject(s)',options,key=f'same_cohort_sources_{unique}')
+                enabled=st.checkbox('Use this mapping for the current session',value=False,key=f'same_cohort_enable_{unique}')
+                if enabled and selected:
+                    same_rules[(selected_candidate['year'],selected_candidate['subject'])]=selected
+                elif enabled:st.warning('Choose at least one previous-assessment subject.')
+        st.caption('Unsupported descriptor-to-GCSE equivalences are not invented. Those records remain outside progress percentages until the school approves the conversion rules.')
+if same_rules:
+    same_key=fingerprint(mapped_key,sorted((y,s,tuple(v)) for (y,s),v in same_rules.items()))
+    computed,same_audit=reuse(st.session_state,'same_cohort_mapped',same_key,
+        lambda:apply_same_cohort_mappings(computed,records,same_rules,base,None if base2=='None' else base2))
+    mapped_count=int((same_audit.status=='Mapped').sum()) if not same_audit.empty else 0
+    blocked_count=int((same_audit.status=='Needs approved conversion').sum()) if not same_audit.empty else 0
+    st.info(f'Same-cohort subject mapping: {mapped_count} additional progress comparisons; {blocked_count} need an approved grade conversion.')
+
 if computed.empty:
     st.info('No assessment outcomes were found with the selected configuration.');st.stop()
 
@@ -359,6 +396,22 @@ if data.empty:
     st.info('No results match those filters. Select a different phase, year group, subject or student group.')
     st.stop()
 combined=combined_assessments(data)
+# Surface the denominator before any leadership judgement is viewed.
+current_n=int(combined['current_grade'].notna().sum())
+progress_n=int(combined['progress'].notna().sum())
+if current_n and progress_n < current_n:
+    st.info(f'**Progress coverage:** {progress_n:,} of {current_n:,} current-grade assessment results have a classified progress comparison ({100*progress_n/current_n:.0f}%). Some records are excluded because a baseline is missing or grade equivalence is unapproved. Expand the Progress coverage panel to review the exclusions by year and subject.')
+
+with st.expander('Progress coverage and excluded results · check before using progress judgements', expanded=(view=='School Overview')):
+    st.caption('Counts show distinct students with a valid CURRENT grade, not total enrolment. Unclassified progress is excluded from KHDA-style progress percentages; missing baselines and unsupported grade conversions are shown separately.')
+    audit=progress_coverage(combined,by=('year','category'))
+    if not audit.empty:
+        cols=['year','category','Students with current grade','Students with baseline and current','Progress classified','Current grade, baseline missing','Grade conversion not approved','From optional mapping','% progress coverage']
+        audit=audit[cols].rename(columns={'year':'Year','category':'Subject'})
+        st.dataframe(audit,hide_index=True,use_container_width=True)
+        low=audit.loc[(audit['Students with current grade']>=5)&(audit['% progress coverage']<75)]
+        if not low.empty:st.warning(f'{len(low)} subject/year rows have progress coverage below 75%. Review their missing baselines and grade equivalences before interpreting progress judgements.')
+        st.download_button('Download aggregate progress coverage · Excel',excel_bytes(audit),'DBSJP_Progress_Coverage.xlsx',key='progress_coverage_download')
 
 st.markdown(f'<div class="db-strip"><b>Current selection</b> · {escape(coverage_status(data))} <br><span class="db-small">{len(data):,} subject records; {data.student_id.nunique():,} distinct students. Method: {"unweighted subject averages" if method=="unweighted" else "pooled assessment records"}.</span></div>',unsafe_allow_html=True)
 
