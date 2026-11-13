@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 import pandas as pd
+from science_grade_conversions import science_equivalence
 
 KS3_POINTS = {'WT-':1,'WT':2,'WT+':3,'ME-':4,'ME':5,'ME+':6,'EX-':7,'EX':8,'MA':9}
 GCSE_POINTS = {str(i):float(i) for i in range(1,10)} | {'U':0.0}
@@ -125,11 +126,14 @@ def classify_attainment(grade, enrolled_year=None):
     return None
 
 
-def progress(baseline, current, current_year=None, baseline_year=None):
+def progress(baseline, current, current_year=None, baseline_year=None, subject=None):
     if not baseline or not current:return None
     # Approved transition exception, user explicitly confirmed KS3 ME → GCSE 4 expected.
+    approved_science_expected = science_equivalence(baseline, current, subject)
     expected = baseline.point
-    if baseline.kind=='descriptor' and current.kind=='gcse':
+    if approved_science_expected is not None:
+        expected = approved_science_expected
+    elif baseline.kind=='descriptor' and current.kind=='gcse':
         if baseline.level=='ME':expected=4
         elif baseline.level=='ME+':expected=6
         else:return None # Requires an approved transition, never guess.
@@ -186,7 +190,7 @@ def derive(records, baseline, baseline_fallback, current, current_fallback,targe
         ch,_=select_grade(rec,challenge,None,kind)
         # A level grade interpretation requires explicit qualification context; exposed as option later.
         att=classify_attainment(cur,rec['year'])
-        prog=progress(old,cur,rec['year'],rec['year']-1)
+        prog=progress(old,cur,rec['year'],rec['year']-1,subject=rec['subject'])
         met=target_met(cur,t);met75=target_met(cur,ch)
         va=value_added(cur,t)
         decline=(cur.point<old.point) if cur and old and cur.kind==old.kind else None

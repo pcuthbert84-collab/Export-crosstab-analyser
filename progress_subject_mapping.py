@@ -9,6 +9,7 @@ from collections import defaultdict
 from dataclasses import replace
 import pandas as pd
 from engine import Grade, parse_grade, select_grade, progress
+from science_grade_conversions import science_equivalence
 
 
 def grade_kind(subject: str, year: int) -> str:
@@ -55,13 +56,16 @@ def mapping_candidates(records: pd.DataFrame, baseline: str, fallback: str | Non
     return results
 
 
-def _baseline_equivalent_point(grade: Grade, current: Grade, enrolled_prior_year: int) -> float | None:
+def _baseline_equivalent_point(grade: Grade, current: Grade, enrolled_prior_year: int, subject: str | None = None) -> float | None:
     """Map an earlier grade to a current-grade-scale expected destination.
 
     This is intentionally conservative: cross-system transitions are only
     approved for KS3 ME -> GCSE4 and ME+ -> GCSE6. Unknown equivalences are not
     inferred from provisional numeric-point values.
     """
+    approved_science = science_equivalence(grade, current, subject)
+    if approved_science is not None:
+        return float(approved_science)
     if grade.kind==current.kind:
         if grade.kind=='descriptor' and grade.curriculum_year is not None and grade.curriculum_year!=enrolled_prior_year:
             # The different curriculum-year prefix needs a separate approved mapping.
@@ -122,7 +126,7 @@ def apply_subject_mappings(
                 continue
             g,field=select_grade(candidates[0],baseline,fallback,grade_kind(source_subject,year-1))
             if not g:continue
-            equivalent=_baseline_equivalent_point(g,current,year-1)
+            equivalent=_baseline_equivalent_point(g,current,year-1,subject=subject)
             if equivalent is None:
                 unsupported.append(f'{source_subject}: {g.raw} needs approved conversion')
                 continue

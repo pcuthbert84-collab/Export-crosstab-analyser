@@ -258,7 +258,7 @@ with st.expander('2 · Assessment and target settings',expanded=True):
     a,b=st.columns(2)
     with a:tar=st.selectbox('Standard CAT4 target',['None']+targets,index=next((i+1 for i,t in enumerate(targets) if t.lower().startswith('target')),0))
     with b:cha=st.selectbox('CAT4 75 · Challenge target',['None']+targets,index=1+auto_select(targets,'Challenge') if targets else 0)
-    st.caption('Unsupported cross-grade-set comparisons remain unclassified until approved; this build does not infer equivalences.')
+    st.caption('Science-only approved descriptor-to-GCSE conversions are available, including Combined Science pairs. Other unsupported cross-grade-set comparisons remain unclassified.')
 
 # Repository-controlled approval library, never stores student data.
 try:
@@ -369,7 +369,7 @@ with st.expander('Optional · Match previous grades within the same cohort expor
                 if enabled and selected:
                     same_rules[(selected_candidate['year'],selected_candidate['subject'])]=selected
                 elif enabled:st.warning('Choose at least one previous-assessment subject.')
-        st.caption('Unsupported descriptor-to-GCSE equivalences are not invented. Those records remain outside progress percentages until the school approves the conversion rules.')
+        st.caption('Science has approved descriptor-to-GCSE and paired Combined Science equivalences. Other unsupported descriptor conversions remain outside progress percentages until approved.')
 if same_rules:
     same_key=fingerprint(mapped_key,sorted((y,s,tuple(v)) for (y,s),v in same_rules.items()))
     computed,same_audit=reuse(st.session_state,'same_cohort_mapped',same_key,

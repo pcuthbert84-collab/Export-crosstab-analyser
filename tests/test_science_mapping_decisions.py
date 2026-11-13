@@ -32,7 +32,7 @@ def test_approved_science_baselines_detected_for_four_subjects():
         assert find_rule(load_library(),10,subject,[s['subject'] for s in item['sources']],source_scope='same_cohort_prior_assessment')
 
 
-def test_separate_sciences_progress_and_combined_waits_for_conversion():
+def test_separate_sciences_and_combined_are_now_classified():
     source=fixture()
     calculated=derive(source,BASE,None,CURRENT,None,None,None)
     requested={(10,subject):['Science'] for subject in SUBJECTS}
@@ -43,10 +43,11 @@ def test_separate_sciences_progress_and_combined_waits_for_conversion():
         assert len(filtered)==6 and filtered.progress.eq('Better').all()
         assert filtered.progress_baseline_sources.astype(str).str.contains('Science: ME+',regex=False).all()
     combined=mapped[mapped.subject.eq('Science - Combined')]
-    assert len(combined)==6 and combined.progress.isna().all()
-    assert (audit.status=='Mapped').sum()==18
-    assert (audit.status=='Needs approved conversion').sum()==6
-    assert _baseline_equivalent_point(parse_grade('ME+'),parse_grade('7, 6'),9) is None
+    assert len(combined)==6 and combined.progress.eq('Better').all()
+    assert (audit.status=='Mapped').sum()==24
+    assert (audit.status=='Needs approved conversion').sum()==0
+    assert _baseline_equivalent_point(parse_grade('ME+'),parse_grade('7, 6'),9,subject='Science - Combined') == 6.0
+    assert _baseline_equivalent_point(parse_grade('ME+'),parse_grade('7, 6'),9,subject='English') is None
 
 
 def test_year7_drama_explicitly_unmapped():

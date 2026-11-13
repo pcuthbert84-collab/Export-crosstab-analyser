@@ -95,7 +95,7 @@ def apply_same_cohort_mappings(calculated: pd.DataFrame, records: pd.DataFrame,
             if grade is None:
                 missing.append(source)
                 continue
-            equivalent=_baseline_equivalent_point(grade,current,year-1)
+            equivalent=_baseline_equivalent_point(grade,current,year-1,subject=sub)
             if equivalent is None:
                 unsupported.append(f'{source}: {grade.raw} lacks approved conversion')
                 continue
