@@ -3,12 +3,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 import pandas as pd
-from science_grade_conversions import science_equivalence
-from english_grade_conversions import english_equivalence
+from grade_equivalences import baseline_equivalent
 
 KS3_POINTS = {'WT-':1,'WT':2,'WT+':3,'ME-':4,'ME':5,'ME+':6,'EX-':7,'EX':8,'MA':9}
 GCSE_POINTS = {str(i):float(i) for i in range(1,10)} | {'U':0.0}
-ALEVEL_POINTS = {'U':1,'E':2,'D':4,'C':5,'B':6,'A':7,'A*':9}
+ALEVEL_POINTS = {'U':0,'E':2,'D':4,'C':5,'B':6,'A':7,'A*':9}
 BTEC_POINTS = {'FAIL':1,'PASS':5,'MERIT':6,'DISTINCTION':7,'DISTINCTION*':9}
 GROUP_FIELDS = ['SEN','Emirati','HAS / LAS','Islamic A/B','High Ability Learner','EAL','Home Grown','New Students']
 SUBJECT_CATEGORIES = {
@@ -31,7 +30,7 @@ class Grade:
 
 
 def parse_grade(value, kind='auto', year=None):
-    if pd.isna(value) or str(value).strip() in ('','-','—','N/A','nan','None'):
+    if pd.isna(value) or str(value).strip().upper() in ('','-','—','N/A','NA','NAN','NONE','NULL'):
         return None
     raw = str(value).strip().upper().replace(' ', '')
     match = re.fullmatch(r'(?:Y(\d+))?(WT-|WT\+|WT|ME-|ME\+|ME|EX-|EX|MA)', raw)
@@ -50,6 +49,8 @@ def parse_grade(value, kind='auto', year=None):
     if kind=='btec' and raw in ('P','M','D'):
         name={'P':'PASS','M':'MERIT','D':'DISTINCTION'}[raw]
         return Grade(str(value),float(BTEC_POINTS[name]),'btec',name)
+    if raw == 'U':
+        return Grade(str(value), 0.0, kind if kind in ('alevel','btec') else 'gcse', 'U')
     if kind=='alevel' and raw in ALEVEL_POINTS:
         return Grade(str(value),float(ALEVEL_POINTS[raw]),'alevel',raw)
     if raw in GCSE_POINTS and kind in ('auto','gcse'):
@@ -122,25 +123,21 @@ def classify_attainment(grade, enrolled_year=None):
     if grade.kind=='double':
         a,b=grade.pair
         return 'Below' if (a,b)<(4,3) else 'At' if (a,b)<(6,5) else 'Above'
-    if grade.kind=='btec':return 'Below' if grade.level=='FAIL' else 'At' if grade.level=='PASS' else 'Above'
+    if grade.kind=='btec':return 'Below' if grade.level in ('FAIL','U') else 'At' if grade.level=='PASS' else 'Above'
     if grade.kind=='alevel':return 'Below' if grade.level in ('U','E','D') else 'At' if grade.level=='C' else 'Above'
     return None
 
 
 def progress(baseline, current, current_year=None, baseline_year=None, subject=None):
     if not baseline or not current:return None
-    # Approved transition exception, user explicitly confirmed KS3 ME → GCSE 4 expected.
-    approved_science_expected = science_equivalence(baseline, current, subject)
-    approved_english_expected = english_equivalence(baseline, current, subject)
+    # School-approved equivalence applies to every subject, using the same
+    # workbook's selected baseline/current points (or approved subject aliases).
+    approved_expected = baseline_equivalent(baseline, current)
     expected = baseline.point
-    if approved_science_expected is not None:
-        expected = approved_science_expected
-    elif approved_english_expected is not None:
-        expected = approved_english_expected
-    elif baseline.kind=='descriptor' and current.kind=='gcse':
-        if baseline.level=='ME':expected=4
-        elif baseline.level=='ME+':expected=6
-        else:return None # Requires an approved transition, never guess.
+    if approved_expected is not None:
+        expected = float(approved_expected)
+    elif baseline.kind=='descriptor' and current.kind in ('gcse','double'):
+        return None
     elif baseline.kind!=current.kind:
         return None
     elif baseline.kind=='descriptor' and baseline.curriculum_year and current.curriculum_year:

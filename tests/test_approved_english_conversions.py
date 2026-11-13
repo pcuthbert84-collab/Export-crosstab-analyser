@@ -18,8 +18,8 @@ def test_english_all_equivalences(descriptor,expected):
     assert progress(b,c,7,6,subject='English') == ('Better' if expected>=7 else 'Expected')
 
 @pytest.mark.parametrize('name',('Mathematics','Geography','ICT','Technology','Drama'))
-def test_non_english_no_new_conversions(name):
-    assert progress(parse_grade('WT-'),parse_grade('1'),10,9,subject=name) is None
+def test_global_conversions_also_apply_to_other_subjects(name):
+    assert progress(parse_grade('WT-'),parse_grade('1'),10,9,subject=name) == 'Expected'
 
 
 def test_year7_mean_and_year11_language_preserved():

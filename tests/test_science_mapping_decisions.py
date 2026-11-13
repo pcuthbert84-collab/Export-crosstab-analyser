@@ -47,7 +47,7 @@ def test_separate_sciences_and_combined_are_now_classified():
     assert (audit.status=='Mapped').sum()==24
     assert (audit.status=='Needs approved conversion').sum()==0
     assert _baseline_equivalent_point(parse_grade('ME+'),parse_grade('7, 6'),9,subject='Science - Combined') == 6.0
-    assert _baseline_equivalent_point(parse_grade('ME+'),parse_grade('7, 6'),9,subject='English') is None
+    assert _baseline_equivalent_point(parse_grade('ME+'),parse_grade('7, 6'),9,subject='English') == 6.0
 
 
 def test_year7_drama_explicitly_unmapped():

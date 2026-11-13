@@ -249,7 +249,7 @@ if not assess:
     st.stop()
 
 with st.expander('2 · Assessment and target settings',expanded=True):
-    st.caption('Priority 2 is used only if Priority 1 has no valid grade for the individual student and subject.')
+    st.caption('Each uploaded year-group workbook contains both baseline and current assessment points. Choose your preferred column and a fallback for each. If the preferred grade is N/A or blank, the fallback is used; U is a valid grade worth 0 and is not skipped.')
     c1,c2,c3,c4=st.columns(4)
     with c1:base=st.selectbox('Baseline · first choice',assess,index=auto_select(assess,'DP3'))
     with c2:base2=st.selectbox('Baseline · fallback',['None']+assess,index=1+auto_select(assess,'exam') if any('exam' in x.lower() for x in assess) else 0)
@@ -258,7 +258,7 @@ with st.expander('2 · Assessment and target settings',expanded=True):
     a,b=st.columns(2)
     with a:tar=st.selectbox('Standard CAT4 target',['None']+targets,index=next((i+1 for i,t in enumerate(targets) if t.lower().startswith('target')),0))
     with b:cha=st.selectbox('CAT4 75 · Challenge target',['None']+targets,index=1+auto_select(targets,'Challenge') if targets else 0)
-    st.caption('Approved Science and English descriptor-to-GCSE conversions are available; Science also supports Combined Science pairs. Other unsupported cross-grade-set comparisons remain unclassified.')
+    st.caption('The school-approved WT− to MA descriptor-to-GCSE equivalence now applies to every subject, including paired GCSE grades. U counts as 0; N/A is missing and triggers the selected fallback assessment. Unrelated qualification conversions remain unclassified.')
 
 # Repository-controlled approval library, never stores student data.
 try:
@@ -336,7 +336,7 @@ if mapping_rules:
 # A DCPro current-year export can contain a *prior assessment* under a different
 # subject heading. This is not a match to the other cohort's current workbook.
 with st.expander('Optional · Match previous grades within the same cohort export', expanded=False):
-    st.caption('Example: Year 7 English current grade with last year’s Reading/Writing grades in the Year 7 export, or Year 11 English with an English Language prior exam grade. Only applies if explicitly enabled; grade conversions must be approved.')
+    st.caption('Preferred workflow: both assessment points are already in the SAME uploaded year-group workbook. For example Year 7 English can use prior Reading/Writing grades from that Year 7 export. Only approved subject aliases are preselected; universal descriptor-to-GCSE equivalents are approved separately.')
     candidates=reuse(st.session_state,'same_cohort_candidates',fingerprint(calc_key,mapped_key,transition_library),
         lambda:same_cohort_candidates(records,computed,base,None if base2=='None' else base2,transition_library))
     if not candidates:

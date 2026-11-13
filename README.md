@@ -1,3 +1,5 @@
+> **Version 3.2:** Universal WT- to MA progress conversion for all subjects, U=0, N/A uses the configured fallback, baseline and current points in each DCPro workbook. See `RELEASE_v3_2.md`.
+
 > **Version 3.1:** English descriptor conversions and corrected progress-coverage audit. See `RELEASE_v3_1.md` and `ENGLISH_GRADE_CONVERSION_APPROVAL.md`.
 
 ## Version 3.0 — Science-only grade conversions

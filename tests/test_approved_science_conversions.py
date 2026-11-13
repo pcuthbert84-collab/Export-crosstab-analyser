@@ -29,13 +29,10 @@ def test_every_approved_science_single_and_double_equivalent(descriptor,n):
 def test_science_progress_examples(baseline,actual,expected):
     assert progress(parse_grade(baseline),parse_grade(actual),10,9,subject='Science - Combined')==expected
 
-def test_non_science_unapproved_conversions_unchanged():
-    # English is now independently approved; unrelated subjects stay unchanged.
-    for label in ('WT-', 'WT', 'WT+', 'ME-', 'EX-', 'EX', 'MA'):
-        assert progress(parse_grade(label),parse_grade('4'),10,9,subject='Mathematics') is None
-        assert progress(parse_grade(label),parse_grade('4, 4'),10,9,subject='English') is None
-    assert progress(parse_grade('ME'),parse_grade('4'),10,9,subject='English') == 'Expected'
-    assert progress(parse_grade('ME+'),parse_grade('6'),10,9,subject='English') == 'Expected'
+def test_all_subjects_share_approved_conversions():
+    for label,n in SCIENCE_DESCRIPTOR_TO_GCSE.items():
+        assert progress(parse_grade(label), parse_grade(str(n)), 10, 9, subject='Mathematics') == ('Better' if n>=7 else 'Expected')
+        assert progress(parse_grade(label), parse_grade(f'{n},{n}'), 10, 9, subject='English') == ('Better' if n>=7 else 'Expected')
     assert science_equivalence(parse_grade('ME'),parse_grade('4'),'BTEC Science') is None
 
 

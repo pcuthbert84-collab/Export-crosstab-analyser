@@ -9,8 +9,7 @@ from collections import defaultdict
 from dataclasses import replace
 import pandas as pd
 from engine import Grade, parse_grade, select_grade, progress
-from science_grade_conversions import science_equivalence
-from english_grade_conversions import english_equivalence
+from grade_equivalences import baseline_equivalent
 
 
 def grade_kind(subject: str, year: int) -> str:
@@ -60,23 +59,18 @@ def mapping_candidates(records: pd.DataFrame, baseline: str, fallback: str | Non
 def _baseline_equivalent_point(grade: Grade, current: Grade, enrolled_prior_year: int, subject: str | None = None) -> float | None:
     """Map an earlier grade to a current-grade-scale expected destination.
 
-    This is intentionally conservative: cross-system transitions are only
-    approved for KS3 ME -> GCSE4 and ME+ -> GCSE6. Unknown equivalences are not
-    inferred from provisional numeric-point values.
+    This is intentionally conservative: descriptor -> numeric GCSE/paired GCSE use the universal approved
+    equivalence table; unrelated qualification-to-qualification comparisons
+    are not inferred from provisional numeric-point values.
     """
-    approved_science = science_equivalence(grade, current, subject)
-    if approved_science is not None:
-        return float(approved_science)
-    approved_english = english_equivalence(grade, current, subject)
-    if approved_english is not None:
-        return float(approved_english)
+    approved = baseline_equivalent(grade, current)
+    if approved is not None:
+        return float(approved)
     if grade.kind==current.kind:
         if grade.kind=='descriptor' and grade.curriculum_year is not None and grade.curriculum_year!=enrolled_prior_year:
             # The different curriculum-year prefix needs a separate approved mapping.
             return None
         return grade.point
-    if grade.kind=='descriptor' and current.kind=='gcse':
-        return {'ME':4.0,'ME+':6.0}.get(grade.level)
     return None
 
 
