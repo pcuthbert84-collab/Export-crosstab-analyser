@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {
+      "from_year": 6,
+      "to_year": 7,
+      "current_subject": "English",
+      "source_subjects": ["Reading", "Writing"],
+      "method": "mean_available",
+      "status": "proposed",
+      "rationale": "Cross-phase example for subject leader review; not yet approved."
+    }
+  ]
+}

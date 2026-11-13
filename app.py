@@ -18,8 +18,10 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 
 from engine import parse_dcpro, derive, summarise, GROUP_FIELDS
+from session_performance import fingerprint, reuse, clear_private
 from year_detection import suggest_year
 from progress_subject_mapping import mapping_candidates, apply_subject_mappings
+from transition_library import load_library, find_rule, proposal, proposal_download, normalise_subject
 from overview_tables import summary_tables, compact_table, detail_table
 from dashboard_analytics import (
     PHASES, combined_assessments, filtered_cohort_summary, coverage_status,
@@ -117,18 +119,25 @@ def narrative_findings(s):
 with st.sidebar:
     st.markdown('<div class="db-eyebrow">DUBAI BRITISH SCHOOL</div>',unsafe_allow_html=True)
     st.markdown('### Data Intelligence')
-    st.caption('Leadership dashboard · v2.0')
+    st.caption('Leadership dashboard · v2.4 · optimised')
     st.divider()
     view=st.radio('Explore', [x[0] for x in NAV_ITEMS],index=0)
     st.divider()
-    uploads=st.file_uploader('Upload DCPro Excel files',type=['xlsx'],accept_multiple_files=True,help='One workbook per year group; use synthetic data for development.')
-    st.caption('Files are processed in memory for this prototype. Do not use with real student data on public hosting.')
+    if '_dbsjp_upload_revision' not in st.session_state:
+        st.session_state['_dbsjp_upload_revision']=0
+    if st.button('Clear uploads and analysis',help='Clear the upload widget plus parsed and calculated assessment records for this session.'):
+        clear_private(st.session_state)
+        st.session_state['_dbsjp_upload_revision']+=1
+        st.rerun()
+    uploads=st.file_uploader('Upload DCPro Excel files',type=['xlsx'],accept_multiple_files=True,key=f"dbsjp_uploads_{st.session_state['_dbsjp_upload_revision']}",help='One workbook per year group; use synthetic data for development.')
+    st.caption('Session-only processing and reuse. Do not use with real student data on public hosting.')
 
 st.markdown('''<div class="db-hero"><div class="db-eyebrow" style="color:#9cd4df">DBSJP · ASSESSMENT & REPORTING</div>
 <h1>Data Intelligence</h1><p>Clearer insights. Better questions. More targeted support.</p></div>''',unsafe_allow_html=True)
 st.warning('**Development environment — synthetic or properly anonymised data only.** Student-record access control, secure hosting and production data protection are not yet implemented.',icon='🔒')
 
 if not uploads:
+    clear_private(st.session_state)
     st.subheader('Your assessment workspace')
     st.write('Upload one or more year-group DCPro Excel exports using the sidebar. Then confirm the year group and assessment columns to explore your results.')
     c1,c2,c3=st.columns(3)
@@ -152,11 +161,14 @@ if not uploads:
 
 st.markdown('### 1 · Confirm your uploads')
 loaded=[]
+selected_signatures=[]
 for i,file in enumerate(uploads):
     try:
-        if len(file.getvalue())>12*1024*1024:
+        blob=file.getvalue()
+        if len(blob)>12*1024*1024:
             st.error(f'{file.name}: File exceeds the prototype 12 MB limit.');continue
-        sheets=load_excel(file.getvalue())
+        file_fingerprint=fingerprint(blob)
+        sheets=reuse(st.session_state, f'workbook_{i}', file_fingerprint, lambda: load_excel(blob))
     except Exception:
         st.error(f'{file.name}: Could not read a valid Excel workbook.');continue
     with st.expander(f'{file.name} · {len(sheets)} worksheet(s)',expanded=True):
@@ -165,7 +177,7 @@ for i,file in enumerate(uploads):
         guess=suggest_year(file.name,active_sheets)
         options=['Please select']+list(range(1,14))
         default_idx=guess.year if guess.year is not None else 0
-        year_key=hashlib.sha256(file.getvalue()).hexdigest()[:12]
+        year_key=file_fingerprint[:12]
         sheet_key=hashlib.sha256('|'.join(sorted(selected_sheets)).encode()).hexdigest()[:8]
         year=st.selectbox('Confirm year group',options,index=default_idx,key=f'upload_year_{i}_{year_key}_{sheet_key}',help='Automatically suggested from class codes, year-group columns or filename; always confirm. A workbook must represent one enrolled year group.')
         st.caption(f'Year-group suggestion: {guess.note}')
@@ -175,13 +187,17 @@ for i,file in enumerate(uploads):
         for sheet,df in sheets:
             if sheet in selected_sheets:
                 st.caption(f'{sheet}: {len(df):,} source rows · {len(df.columns):,} columns')
-                parsed=parse_dcpro(df,year,file.name)
-                if not parsed.empty:loaded.append(parsed)
+                parse_key=fingerprint(file_fingerprint,sheet,year)
+                parsed=reuse(st.session_state,f'parsed_{i}_{hashlib.sha256(sheet.encode()).hexdigest()[:10]}',parse_key,lambda: parse_dcpro(df,year,file.name))
+                if not parsed.empty:
+                    loaded.append(parsed)
+                    selected_signatures.append((i,file.name,parse_key))
 
 if not loaded:
     st.info('No DCPro assessment records were found in the selected worksheets.')
     st.stop()
-records=pd.concat(loaded,ignore_index=True)
+record_key=fingerprint(selected_signatures)
+records=reuse(st.session_state,'records',record_key,lambda:pd.concat(loaded,ignore_index=True))
 if records.duplicated(['student_id','year','subject']).any():
     st.error('Duplicate student/year/subject records have been detected. Review overlapping uploads before relying on results; duplicate records have not been automatically removed.')
 
@@ -205,34 +221,66 @@ with st.expander('2 · Assessment and target settings',expanded=True):
     with b:cha=st.selectbox('CAT4 75 · Challenge target',['None']+targets,index=1+auto_select(targets,'Challenge') if targets else 0)
     st.caption('Unsupported cross-grade-set comparisons remain unclassified until approved; this build does not infer equivalences.')
 
-# Optional subject-to-subject baseline mapping, especially at transition points.
-# Mapping rules are session-only: never saved or pushed to a shared cache.
+# Repository-controlled approval library, never stores student data.
+try:
+    transition_library=load_library()
+except (ValueError, OSError, KeyError) as exc:
+    st.error(f'Subject transition library is invalid: {exc}. No library mappings will be applied.')
+    st.stop()
+
 mapping_rules={}
-with st.expander('Optional · Progress subject mapping (e.g. Year 6 Reading + Writing → Year 7 English)',expanded=False):
-    st.caption('Use this only when the current subject has no comparable baseline. Choose one earlier-year subject, or several to average their approved grade points. Current attainment, targets and existing valid progress will not be overwritten.')
-    candidates=mapping_candidates(records,base,None if base2=='None' else base2)
+requested_proposals=[]
+with st.expander('Optional · Progress subject transition library',expanded=False):
+    st.caption('Approved rules can preselect earlier-year subjects. Suggested rules need review and do not run automatically. Any override applies only to this dashboard session.')
+    candidates=reuse(st.session_state,'mapping_candidates',fingerprint(record_key,base,base2),lambda:mapping_candidates(records,base,None if base2=='None' else base2))
     available=[item for item in candidates if item['missing_same_subject']>0]
+    approved=[r for r in transition_library['rules'] if r['status']=='approved']
+    proposed=[r for r in transition_library['rules'] if r['status']=='proposed']
+    st.caption(f'Library: {len(approved)} approved transition(s), {len(proposed)} awaiting review. Approvals are managed through reviewed GitHub changes, not this public dashboard.')
     if not available:
-        st.info('No eligible cross-year subject mappings found. To map Year 6 Reading/Writing to Year 7 English, upload both year groups with matching student IDs and usable baseline grades.')
+        st.info('No eligible earlier-year subjects found with matching student IDs and available baseline grades. Upload adjacent year groups to configure a transition.')
     else:
-        st.caption(f'{len(available)} potential subject/year transition(s) across the uploaded files. Nothing is mapped unless you choose a source.')
         for item in available:
             year=item['year'];name=item['subject']
-            suggested=[c for c in item['sources'] if c.lower() in ('reading','writing')] if name.strip().lower()=='english' else []
-            selected=st.multiselect(
-                f'Year {year} {name} ← Year {year-1} subjects',
-                item['sources'],default=[],
-                key=f'progress_mapping_{year}_{hashlib.sha256(name.encode()).hexdigest()[:12]}',
-                help=f'{item["matched_students"]} students have records in both year groups. Suggested: {", ".join(suggested) if suggested else "Select matching earlier subjects"}.',
-            )
-            if selected:
-                mapping_rules[(year,name)]=selected
-                st.caption('Mapping: '+('single subject' if len(selected)==1 else f'mean of available grades from {len(selected)} selected subjects')+'. Students with no valid earlier-grade match remain unclassified.')
+            active=find_rule(transition_library,year,name,item['sources'])
+            suggested=next((r for r in proposed if r['to_year']==year and normalise_subject(r['current_subject'])==normalise_subject(name)),None)
+            with st.container(border=True):
+                st.markdown(f'**Year {year} · {name}** ← Year {year-1}')
+                if active:
+                    st.caption(f'Approved by {active["approved_by"]} on {active["approved_on"]}: {active["rationale"]}')
+                elif suggested:
+                    st.caption('Suggested for review (NOT approved): '+', '.join(suggested['source_subjects']))
+                else:
+                    st.caption('No approved rule; you can select a temporary mapping below.')
+                enabled=st.checkbox('Use this mapping for the current session',value=bool(active),
+                                    key=f'transition_enabled_{year}_{hashlib.sha256(name.encode()).hexdigest()[:12]}')
+                selected=st.multiselect(
+                    'Earlier-year subject(s)',item['sources'],
+                    default=(active['resolved_sources'] if active else []),
+                    key=f'transition_sources_{year}_{hashlib.sha256(name.encode()).hexdigest()[:12]}')
+                if enabled and selected:
+                    mapping_rules[(year,name)]=selected
+                    st.caption('Using '+('one source' if len(selected)==1 else 'the mean of available source grades')+'. Existing valid baselines will not be replaced.')
+                elif enabled:
+                    st.warning('Select at least one earlier-year subject to enable this mapping.')
+                if selected and (not active or [normalise_subject(x) for x in selected]!=[normalise_subject(x) for x in active['resolved_sources']]):
+                    if st.checkbox('Include my selection in a non-personal approval request',key=f'transition_proposal_{year}_{hashlib.sha256(name.encode()).hexdigest()[:12]}'):
+                        requested_proposals.append(proposal(year,name,selected))
+        if requested_proposals:
+            st.download_button('Download mapping proposals for subject leader approval',
+                proposal_download(requested_proposals),'DBSJP_Subject_Mapping_Proposals.json',
+                mime='application/json',key='subject_mapping_proposals_download')
+            st.caption('The downloaded proposals contain subject and year names only, not student data. A designated reviewer must approve and commit them into the library.')
         if mapping_rules:
-            st.warning('Progress mappings are analytical decisions. Review grade compatibility and source subjects before using results in PPMs or inspection reports.')
+            st.warning('Subject mapping does not approve cross-grade-set conversions. Review any conversion warnings before using progress results.')
 
-computed=derive(records,base,None if base2=='None' else base2,cur,None if cur2=='None' else cur2,None if tar=='None' else tar,None if cha=='None' else cha)
-computed,mapping_audit=apply_subject_mappings(computed,records,mapping_rules,base,None if base2=='None' else base2)
+calc_key=fingerprint(record_key,base,base2,cur,cur2,tar,cha)
+base_computed=reuse(st.session_state,'calculated',calc_key,
+    lambda:derive(records,base,None if base2=='None' else base2,cur,None if cur2=='None' else cur2,None if tar=='None' else tar,None if cha=='None' else cha))
+# Never mutate a cached result. Reuse mapped results only when rules/assessments match.
+mapped_key=fingerprint(calc_key,sorted((year,name,tuple(sources)) for (year,name),sources in mapping_rules.items()))
+computed,mapping_audit=reuse(st.session_state,'mapped',mapped_key,
+    lambda:apply_subject_mappings(base_computed,records,mapping_rules,base,None if base2=='None' else base2))
 if mapping_rules:
     applied=int((mapping_audit.get('status',pd.Series(dtype=str))=='Mapped').sum())
     unsupported=int((mapping_audit.get('status',pd.Series(dtype=str))=='Needs conversion').sum())

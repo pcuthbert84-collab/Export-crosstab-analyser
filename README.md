@@ -88,3 +88,11 @@ In **Optional · Progress subject mapping** (after assessment-point selection), 
 This is **progress only**: the mapping does not alter current attainment, target achievement, value added, or the original Reading/Writing tables. Existing comparable progress and existing current-subject baselines remain untouched. The mapping is selected afresh during the active session; no permanent student data or cross-subject rule is stored. Unsupported cross-system conversions are shown in a review panel, not guessed. For approved KS3-to-GCSE transitions, ME maps to GCSE grade 4 and ME+ to grade 6. Students must match by student ID across uploaded year groups; files without reliable shared IDs cannot safely be joined.
 
 Current limitation: the optional mapper uses the **immediately preceding enrolled year** and the selected baseline priority/fallback fields. When some of the selected source grades are absent, it averages those that are available and auditable. More complex multi-year or manually weighted mappings need a later release and documented school agreement.
+
+## Approved subject-transition library (v2.3)
+
+A repository-managed `approved_subject_transitions.json` provides repeatable, reviewed year-to-year subject mappings for progress. The initial Year 6 Reading + Writing → Year 7 English rule is **proposed**, not approved; a designated assessment/subject leader must authorise it before it can be preselected. Approved rules appear automatically when both years and all source subjects are present. Staff can override them for the current session without changing the official library. See `APPROVAL_WORKFLOW.md` for approvals, deployment and cautions. Grade-scale equivalence requires separate approval.
+
+## Version 2.3 — reviewed transition mapping library
+
+`approved_subject_transitions.json` is a non-personal, version-controlled library. Its initial Year 6 Reading + Writing → Year 7 English example is **proposed**, not automatically approved. Once genuinely signed off by a school reviewer, set it to `approved` and add reviewer/date/rationale via a reviewed GitHub update; only then will the Streamlit mapping menu preselect it. Users can still disable or override the selection for the current session. Full directions and safeguards are in `APPROVAL_WORKFLOW.md`.
