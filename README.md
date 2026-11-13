@@ -80,3 +80,11 @@ School-approved hosting and data region; Entra sign-in with MFA; server-side rol
 - Users can still override the suggestion. Every workbook should contain only one enrolled year group.
 - The main phase/year/subject filter panel also opens by default.
 - All existing assessment calculations, subject and PPM views remain unchanged.
+
+## Version 2.2 — optional cross-subject progress mapping
+
+In **Optional · Progress subject mapping** (after assessment-point selection), select the previous-year subject or subjects that form the baseline for a current-year subject. For example, upload Year 6 and Year 7 DCPro files with **consistent student IDs**, then select **Year 7 English ← Year 6 Reading, Writing**. Select one source to use its grade, or multiple sources to average the *available valid comparable grades for each student*. The app reports the source subjects used and the number of mapped comparisons.
+
+This is **progress only**: the mapping does not alter current attainment, target achievement, value added, or the original Reading/Writing tables. Existing comparable progress and existing current-subject baselines remain untouched. The mapping is selected afresh during the active session; no permanent student data or cross-subject rule is stored. Unsupported cross-system conversions are shown in a review panel, not guessed. For approved KS3-to-GCSE transitions, ME maps to GCSE grade 4 and ME+ to grade 6. Students must match by student ID across uploaded year groups; files without reliable shared IDs cannot safely be joined.
+
+Current limitation: the optional mapper uses the **immediately preceding enrolled year** and the selected baseline priority/fallback fields. When some of the selected source grades are absent, it averages those that are available and auditable. More complex multi-year or manually weighted mappings need a later release and documented school agreement.

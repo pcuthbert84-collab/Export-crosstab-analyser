@@ -19,6 +19,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 
 from engine import parse_dcpro, derive, summarise, GROUP_FIELDS
 from year_detection import suggest_year
+from progress_subject_mapping import mapping_candidates, apply_subject_mappings
 from overview_tables import summary_tables, compact_table, detail_table
 from dashboard_analytics import (
     PHASES, combined_assessments, filtered_cohort_summary, coverage_status,
@@ -204,7 +205,42 @@ with st.expander('2 · Assessment and target settings',expanded=True):
     with b:cha=st.selectbox('CAT4 75 · Challenge target',['None']+targets,index=1+auto_select(targets,'Challenge') if targets else 0)
     st.caption('Unsupported cross-grade-set comparisons remain unclassified until approved; this build does not infer equivalences.')
 
+# Optional subject-to-subject baseline mapping, especially at transition points.
+# Mapping rules are session-only: never saved or pushed to a shared cache.
+mapping_rules={}
+with st.expander('Optional · Progress subject mapping (e.g. Year 6 Reading + Writing → Year 7 English)',expanded=False):
+    st.caption('Use this only when the current subject has no comparable baseline. Choose one earlier-year subject, or several to average their approved grade points. Current attainment, targets and existing valid progress will not be overwritten.')
+    candidates=mapping_candidates(records,base,None if base2=='None' else base2)
+    available=[item for item in candidates if item['missing_same_subject']>0]
+    if not available:
+        st.info('No eligible cross-year subject mappings found. To map Year 6 Reading/Writing to Year 7 English, upload both year groups with matching student IDs and usable baseline grades.')
+    else:
+        st.caption(f'{len(available)} potential subject/year transition(s) across the uploaded files. Nothing is mapped unless you choose a source.')
+        for item in available:
+            year=item['year'];name=item['subject']
+            suggested=[c for c in item['sources'] if c.lower() in ('reading','writing')] if name.strip().lower()=='english' else []
+            selected=st.multiselect(
+                f'Year {year} {name} ← Year {year-1} subjects',
+                item['sources'],default=[],
+                key=f'progress_mapping_{year}_{hashlib.sha256(name.encode()).hexdigest()[:12]}',
+                help=f'{item["matched_students"]} students have records in both year groups. Suggested: {", ".join(suggested) if suggested else "Select matching earlier subjects"}.',
+            )
+            if selected:
+                mapping_rules[(year,name)]=selected
+                st.caption('Mapping: '+('single subject' if len(selected)==1 else f'mean of available grades from {len(selected)} selected subjects')+'. Students with no valid earlier-grade match remain unclassified.')
+        if mapping_rules:
+            st.warning('Progress mappings are analytical decisions. Review grade compatibility and source subjects before using results in PPMs or inspection reports.')
+
 computed=derive(records,base,None if base2=='None' else base2,cur,None if cur2=='None' else cur2,None if tar=='None' else tar,None if cha=='None' else cha)
+computed,mapping_audit=apply_subject_mappings(computed,records,mapping_rules,base,None if base2=='None' else base2)
+if mapping_rules:
+    applied=int((mapping_audit.get('status',pd.Series(dtype=str))=='Mapped').sum())
+    unsupported=int((mapping_audit.get('status',pd.Series(dtype=str))=='Needs conversion').sum())
+    st.caption(f'Progress subject mapping: {applied} student-subject comparisons mapped; {unsupported} need an approved grade conversion.')
+    if not mapping_audit.empty and unsupported:
+        with st.expander('Mappings requiring conversion review'):
+            st.dataframe(mapping_audit.loc[mapping_audit.status!='Mapped'],hide_index=True,use_container_width=True)
+
 if computed.empty:
     st.info('No assessment outcomes were found with the selected configuration.');st.stop()
 
