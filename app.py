@@ -159,7 +159,7 @@ def narrative_findings(s):
 with st.sidebar:
     st.markdown('<div class="db-eyebrow">DUBAI BRITISH SCHOOL</div>',unsafe_allow_html=True)
     st.markdown('### Data Intelligence')
-    st.caption('Leadership dashboard · v3.3 · approved subject transitions')
+    st.caption('Leadership dashboard · v3.5 · approved subject transitions')
     st.divider()
     view=st.radio('Explore', [x[0] for x in NAV_ITEMS],index=0)
     st.divider()
@@ -259,7 +259,7 @@ with st.expander('2 · Assessment and target settings',expanded=True):
     a,b=st.columns(2)
     with a:tar=st.selectbox('Standard CAT4 target',['None']+targets,index=next((i+1 for i,t in enumerate(targets) if t.lower().startswith('target')),0))
     with b:cha=st.selectbox('CAT4 75 · Challenge target',['None']+targets,index=1+auto_select(targets,'Challenge') if targets else 0)
-    st.caption('The school-approved WT− to MA descriptor-to-GCSE equivalence now applies to every subject, including paired GCSE grades. U counts as 0; N/A is missing and triggers the selected fallback assessment. Unrelated qualification conversions remain unclassified.')
+    st.caption('The school-approved WT− to MA descriptor-to-GCSE equivalence now applies to every subject, including paired GCSE grades. U counts as 0; N/A is missing and triggers the selected fallback assessment. GCSE → A Level destinations are also approved for all A Levels (GCSE 1→U, 2→E, 3→D, 4/5→C, 6→B, 7/8→A, 9→A*). A Level A/A* retains the Better-progress override; unrelated conversions remain unclassified.')
 
 # Repository-controlled approval library, never stores student data.
 try:
@@ -370,7 +370,7 @@ with st.expander('Optional · Match previous grades within the same cohort expor
                 if enabled and selected:
                     same_rules[(selected_candidate['year'],selected_candidate['subject'])]=selected
                 elif enabled:st.warning('Choose at least one previous-assessment subject.')
-        st.caption('The approved descriptor-to-GCSE equivalence applies across subjects. Cross-qualification conversions (including GCSE to A Level) still require separate approval.')
+        st.caption('The approved descriptor-to-GCSE equivalence applies across subjects. GCSE-to-A-Level progress conversion is approved across A Levels; BTEC and other unrelated conversions require separate approval.')
 if same_rules:
     same_key=fingerprint(mapped_key,sorted((y,s,tuple(v)) for (y,s),v in same_rules.items()))
     computed,same_audit=reuse(st.session_state,'same_cohort_mapped',same_key,
@@ -636,5 +636,6 @@ with st.expander('Methodology, caveats and access restrictions'):
 - **Counts:** *Number* counts unique students with valid grades; combined category percentages may count multiple valid subject-assessment records per student.
 - **Judgements:** DBSJP KHDA-style calculations round half-up to whole percentages and require at least five valid assessment results; they are not official inspection grades.
 - **Progress:** unsupported grade-system comparisons remain unclassified. KS3 ME → GCSE 4 is an approved expected-progress case.
-- **Grade conversions:** cross-qualification mappings remain provisional and require approval before live use.
+- **GCSE to A Level progress:** 1→U, 2→E, 3→D, 4/5→C, 6→B, 7/8→A, 9→A*. A/A* retains the Better-progress override (including GCSE 7+ → A/A*). Year 12 requires selecting the GCSE exam grade as a baseline or fallback; Year 13 comparable A Level baselines are unchanged.
+- **Other cross-qualification conversions:** remain unclassified without separate approval.
 - **Privacy:** student-level information is not approved for deployment here. No Microsoft 365 login or role-based authorisation has been implemented. Use synthetic data only until IT approval.''')

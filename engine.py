@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 import pandas as pd
 from grade_equivalences import baseline_equivalent
+from alevel_grade_conversions import gcse_to_alevel_expected
 from btec_it_grade_conversions import expected_btec_level, classify_btec_progress
 
 KS3_POINTS = {'WT-':1,'WT':2,'WT+':3,'ME-':4,'ME':5,'ME+':6,'EX-':7,'EX':8,'MA':9}
@@ -105,10 +106,14 @@ def parse_dcpro(df, year, source_name='Uploaded file'):
     return pd.DataFrame(records)
 
 
-def select_grade(record, preferred, fallback=None, kind='auto'):
+def select_grade(record, preferred, fallback=None, kind='auto', allow_gcse_baseline=False):
     for key in (preferred,fallback):
         if key and key!='None':
             g=parse_grade(record.get(key), kind)
+            # Only selected PRIOR assessment columns in A Level cohorts may contain
+            # GCSE numeric grades. Never reinterpret current A Level results.
+            if g is None and allow_gcse_baseline and kind=='alevel':
+                g=parse_grade(record.get(key),'gcse')
             if g:return g,key
     return None,None
 
@@ -137,6 +142,8 @@ def progress(baseline, current, current_year=None, baseline_year=None, subject=N
     # School-approved equivalence applies to every subject, using the same
     # workbook's selected baseline/current points (or approved subject aliases).
     approved_expected = baseline_equivalent(baseline, current)
+    if approved_expected is None:
+        approved_expected = gcse_to_alevel_expected(baseline, current)
     expected = baseline.point
     if approved_expected is not None:
         expected = float(approved_expected)
@@ -190,7 +197,7 @@ def derive(records, baseline, baseline_fallback, current, current_fallback,targe
         subject=rec['subject'].lower()
         kind='btec' if 'btec' in subject else 'alevel' if rec['year']>=12 else 'auto'
         cur,c_source=select_grade(rec,current,current_fallback,kind)
-        old,b_source=select_grade(rec,baseline,baseline_fallback,kind)
+        old,b_source=select_grade(rec,baseline,baseline_fallback,kind,allow_gcse_baseline=(kind=='alevel'))
         t,_=select_grade(rec,target,None,kind)
         ch,_=select_grade(rec,challenge,None,kind)
         # A level grade interpretation requires explicit qualification context; exposed as option later.

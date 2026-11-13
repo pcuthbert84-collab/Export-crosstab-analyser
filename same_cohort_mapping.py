@@ -28,7 +28,8 @@ def same_cohort_candidates(records: pd.DataFrame, calculated: pd.DataFrame,
     prior = records.loc[:, ['student_id','year','subject','category',
                             *[c for c in (baseline,fallback) if c and c!='None' and c in records.columns]]].copy()
     prior['has_baseline'] = prior.apply(lambda row: select_grade(
-        row, baseline, fallback, grade_kind(str(row['subject']), int(row['year'])))[0] is not None,
+        row, baseline, fallback, grade_kind(str(row['subject']), int(row['year'])),
+        allow_gcse_baseline=(grade_kind(str(row['subject']), int(row['year']))=='alevel'))[0] is not None,
         axis=1)
     prior = prior[prior['has_baseline']]
     if prior.empty:
@@ -93,7 +94,7 @@ def apply_same_cohort_mappings(calculated: pd.DataFrame, records: pd.DataFrame,
             if not candidates:
                 missing.append(source)
                 continue
-            grade,field=select_grade(candidates[0],baseline,fallback,grade_kind(source,year))
+            grade,field=select_grade(candidates[0],baseline,fallback,grade_kind(source,year),allow_gcse_baseline=(grade_kind(source,year)=='alevel'))
             if grade is None:
                 missing.append(source)
                 continue

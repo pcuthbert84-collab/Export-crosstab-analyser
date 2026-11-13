@@ -1,3 +1,5 @@
+> **Version 3.5:** Approved GCSE-to-A-Level progress destinations for **all A Levels**, including Year 12 GCSE exam-grade baseline selection, same-cohort source support, and the A/A* Better-progress override. See `RELEASE_v3_5.md`.
+
 > **Version 3.4:** Approved Year 9 ICT descriptor → Year 10 BTEC IT Pass/Merit/Distinction progress conversions, including same-cohort matching. See `RELEASE_v3_4.md`.
 
 > **Version 3.2:** Universal WT- to MA progress conversion for all subjects, U=0, N/A uses the configured fallback, baseline and current points in each DCPro workbook. See `RELEASE_v3_2.md`.

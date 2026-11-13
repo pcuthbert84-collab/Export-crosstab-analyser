@@ -10,6 +10,7 @@ from dataclasses import replace
 import pandas as pd
 from engine import Grade, parse_grade, select_grade, progress
 from grade_equivalences import baseline_equivalent
+from alevel_grade_conversions import gcse_to_alevel_expected
 from btec_it_grade_conversions import expected_btec_level
 from engine import BTEC_POINTS
 
@@ -69,6 +70,8 @@ def _baseline_equivalent_point(grade: Grade, current: Grade, enrolled_prior_year
     if btec_expected is not None:
         return float(BTEC_POINTS[btec_expected])
     approved = baseline_equivalent(grade, current)
+    if approved is None:
+        approved = gcse_to_alevel_expected(grade, current)
     if approved is not None:
         return float(approved)
     if grade.kind==current.kind:
@@ -131,7 +134,7 @@ def apply_subject_mappings(
             if len(candidates)!=1:
                 if len(candidates)>1: unsupported.append(f'{source_subject}: duplicate rows')
                 continue
-            g,field=select_grade(candidates[0],baseline,fallback,grade_kind(source_subject,year-1))
+            g,field=select_grade(candidates[0],baseline,fallback,grade_kind(source_subject,year-1),allow_gcse_baseline=(grade_kind(source_subject,year-1)=='alevel'))
             if not g:continue
             equivalent=_baseline_equivalent_point(g,current,year-1,subject=subject)
             if equivalent is None:
