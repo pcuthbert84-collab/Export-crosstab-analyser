@@ -10,6 +10,8 @@ from dataclasses import replace
 import pandas as pd
 from engine import Grade, parse_grade, select_grade, progress
 from grade_equivalences import baseline_equivalent
+from btec_it_grade_conversions import expected_btec_level
+from engine import BTEC_POINTS
 
 
 def grade_kind(subject: str, year: int) -> str:
@@ -63,6 +65,9 @@ def _baseline_equivalent_point(grade: Grade, current: Grade, enrolled_prior_year
     equivalence table; unrelated qualification-to-qualification comparisons
     are not inferred from provisional numeric-point values.
     """
+    btec_expected = expected_btec_level(grade,current,subject)
+    if btec_expected is not None:
+        return float(BTEC_POINTS[btec_expected])
     approved = baseline_equivalent(grade, current)
     if approved is not None:
         return float(approved)
@@ -74,7 +79,9 @@ def _baseline_equivalent_point(grade: Grade, current: Grade, enrolled_prior_year
     return None
 
 
-def _mapped_progress(current: Grade, baseline_point: float):
+def _mapped_progress(current: Grade, baseline_point: float, subject: str | None = None):
+    # BTEC current.point uses ordered BTEC-specific points; descriptor baseline
+    # conversion uses those same points, never GCSE numeric equivalents.
     # preserve approved high-achievement classification even with a decline
     if current.kind=='gcse' and current.point>=7:return 'Better'
     if current.kind=='descriptor' and current.level in ('EX-','EX','MA'):return 'Better'
@@ -141,7 +148,7 @@ def apply_subject_mappings(
             updated.at[idx,'progress_source_status']='No selected source grade'
             continue
         mean=sum(points)/len(points)
-        result=_mapped_progress(current,mean)
+        result=_mapped_progress(current,mean,subject=subject)
         oldgrade='Average: '+', '.join(f'{s} {g}' for s,g,_ in used) if len(used)>1 else f'{used[0][0]}: {used[0][1]}'
         updated.at[idx,'baseline_grade']=oldgrade
         updated.at[idx,'baseline_source']=f'Year {year-1} · mapped subject(s)'

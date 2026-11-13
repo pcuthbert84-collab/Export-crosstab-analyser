@@ -99,6 +99,64 @@
       "approved_by": "DBSJP assessment lead (user decision)",
       "approved_on": "2026-11-13",
       "rationale": "Compare prior Year 9 Science DP3 result in the same Year 10 cohort export against current Year 10 Science - Physics grade, only if an independently approved grade conversion exists. The prior Science result can be reused as a baseline for distinct subjects; never count the baseline itself as a current result."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Design Technology",
+      "source_subjects": [
+        "Technology"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Year 9 Technology DP3 is recorded in the Year 10 DCPro export. Subject transition only; does not approve grade conversions."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "BTEC IT",
+      "source_subjects": [
+        "ICT"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Year 9 ICT DP3 is recorded in the Year 10 DCPro export. Subject transition only; does not approve grade conversions."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Computer Science",
+      "source_subjects": [
+        "ICT"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Year 9 ICT DP3 is recorded in the Year 10 DCPro export. Subject transition only; does not approve grade conversions."
+    },
+    {
+      "from_year": 10,
+      "to_year": 11,
+      "current_subject": "Triple Science",
+      "source_subjects": [
+        "Science - Biology",
+        "Science - Chemistry",
+        "Science - Physics"
+      ],
+      "method": "mean_available",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Year 10 separate Science subject baselines are recorded in the same Year 11 DCPro export; use available valid components individually, then mean their equivalent grade points for a single Triple Science current result. Subject transition only; does not approve grade conversions."
     }
   ],
   "no_mapping_decisions": [
@@ -137,6 +195,77 @@
       "decided_by": "DBSJP assessment lead (user decision)",
       "decided_on": "2026-11-13",
       "rationale": "Explicitly leave Year 7 Drama unmapped; reviewed Year 7 and Year 6 DCPro source headings do not contain an equivalent Year 6 Drama grade."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Business",
+      "status": "no_mapping",
+      "decided_by": "DBSJP assessment lead (user decision)",
+      "decided_on": "2026-11-13",
+      "rationale": "New GCSE course starts in Year 10. No Year 9 subject mapping; within-course progress only when two valid same-subject assessment points are present."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Psychology",
+      "status": "no_mapping",
+      "decided_by": "DBSJP assessment lead (user decision)",
+      "decided_on": "2026-11-13",
+      "rationale": "New GCSE course starts in Year 10. No Year 9 subject mapping; within-course progress only when two valid same-subject assessment points are present."
+    }
+  ],
+  "direct_baseline_policies": [
+    {
+      "year": 7,
+      "subject": "French",
+      "source_subject": "French",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "rationale": "Use prior French grade from Year 7 export when present; missing grades remain unclassified."
+    },
+    {
+      "year": 7,
+      "subject": "Spanish",
+      "source_subject": "Spanish",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "rationale": "Use prior Spanish grade from Year 7 export when present; missing grades remain unclassified."
+    }
+  ],
+  "within_course_policies": [
+    {
+      "year": 10,
+      "subject": "Business",
+      "status": "approved",
+      "rationale": "No Year 9 mapping. Compare two valid GCSE Business points in the same file when available, otherwise unavailable."
+    },
+    {
+      "year": 10,
+      "subject": "Psychology",
+      "status": "approved",
+      "rationale": "No Year 9 mapping. Compare two valid GCSE Psychology points in the same file when available, otherwise unavailable."
+    }
+  ],
+  "pending_reviews": [
+    {
+      "year": 11,
+      "subject": "History",
+      "status": "pending",
+      "issue": "Reverse numerical GCSE-to-descriptor grade conversion is not approved; preserve unclassified results."
+    },
+    {
+      "year": 12,
+      "subject": "Mathematics",
+      "status": "pending_conversion",
+      "source_subject": "Mathematics",
+      "source_assessment": "DP Exam Grade 2025/26",
+      "issue": "GCSE Maths baseline appears in same cohort export; no explicit GCSE-to-A-Level progress conversion table is approved. Preserve current results unclassified when types differ."
+    },
+    {
+      "scope": "Primary",
+      "status": "no_new_mapping",
+      "issue": "Missing prior baseline grades remain unclassified; do not fill using unrelated subjects."
     }
   ]
 }

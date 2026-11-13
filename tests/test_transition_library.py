@@ -15,7 +15,7 @@ def approved():
 
 def test_approved_same_cohort_rules_are_loaded_and_scoped():
     library=load_library()
-    assert len(library['rules']) == 7
+    assert len(library['rules']) == 11
     assert all(r['status']=='approved' for r in library['rules'])
     assert find_rule(library,7,'English',['Reading','Writing']) is None
     assert find_rule(library,7,'English',['Reading','Writing'],source_scope='same_cohort_prior_assessment')['resolved_sources']==['Reading','Writing']

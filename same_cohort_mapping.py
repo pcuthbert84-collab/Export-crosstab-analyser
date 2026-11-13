@@ -112,7 +112,7 @@ def apply_same_cohort_mappings(calculated: pd.DataFrame, records: pd.DataFrame,
             audit.append({'year':year,'subject':sub,'status':'No selected source grade','count':1})
             continue
         mean=sum(points)/len(points)
-        result=_mapped_progress(current,mean)
+        result=_mapped_progress(current,mean,subject=sub)
         updated.at[idx,'progress']=result
         updated.at[idx,'baseline_grade']='Mean of mapped grades' if len(points)>1 else descriptions[0].split(' (')[0]
         updated.at[idx,'baseline_source']=f'Same-cohort prior assessment ({baseline}; fallback {fallback or "none"})'

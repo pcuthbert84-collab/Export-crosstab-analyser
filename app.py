@@ -23,6 +23,7 @@ from year_detection import suggest_year
 from progress_subject_mapping import mapping_candidates, apply_subject_mappings
 from same_cohort_mapping import same_cohort_candidates, apply_same_cohort_mappings
 from progress_coverage import progress_coverage
+from progress_policy import apply_reporting_policy
 from transition_library import load_library, find_rule, proposal, proposal_download, normalise_subject, is_explicitly_unmapped
 from overview_tables import summary_tables, compact_table, detail_table
 from dashboard_analytics import (
@@ -158,7 +159,7 @@ def narrative_findings(s):
 with st.sidebar:
     st.markdown('<div class="db-eyebrow">DUBAI BRITISH SCHOOL</div>',unsafe_allow_html=True)
     st.markdown('### Data Intelligence')
-    st.caption('Leadership dashboard · v2.8 · approved subject transitions')
+    st.caption('Leadership dashboard · v3.3 · approved subject transitions')
     st.divider()
     view=st.radio('Explore', [x[0] for x in NAV_ITEMS],index=0)
     st.divider()
@@ -369,7 +370,7 @@ with st.expander('Optional · Match previous grades within the same cohort expor
                 if enabled and selected:
                     same_rules[(selected_candidate['year'],selected_candidate['subject'])]=selected
                 elif enabled:st.warning('Choose at least one previous-assessment subject.')
-        st.caption('Science and English have approved descriptor-to-GCSE equivalences; Science also supports paired Combined Science. Other subjects remain unclassified without approved conversions.')
+        st.caption('The approved descriptor-to-GCSE equivalence applies across subjects. Cross-qualification conversions (including GCSE to A Level) still require separate approval.')
 if same_rules:
     same_key=fingerprint(mapped_key,sorted((y,s,tuple(v)) for (y,s),v in same_rules.items()))
     computed,same_audit=reuse(st.session_state,'same_cohort_mapped',same_key,
@@ -378,8 +379,18 @@ if same_rules:
     blocked_count=int((same_audit.status=='Needs approved conversion').sum()) if not same_audit.empty else 0
     st.info(f'Same-cohort subject mapping: {mapped_count} additional progress comparisons; {blocked_count} need an approved grade conversion.')
 
+computed=apply_reporting_policy(computed,transition_library)
+
 if computed.empty:
     st.info('No assessment outcomes were found with the selected configuration.');st.stop()
+
+
+with st.expander('Approved within-course and pending progress policies', expanded=False):
+    st.caption('Business and Psychology in Year 10 start as new GCSE subjects: there is no approved Year 9 baseline. Only genuinely comparable assessments within the GCSE course can produce progress. No unrelated prior subject is substituted.')
+    for rule in transition_library.get('within_course_policies',[]):
+        st.caption(f"Year {rule['year']} {rule['subject']}: within-course progress only")
+    for rule in transition_library.get('pending_reviews',[]):
+        st.caption(f"{('Year '+str(rule['year'])+' ' if 'year' in rule else '')}{rule.get('subject',rule.get('scope',''))}: {rule['issue']}")
 
 with st.expander('3 · Filters · phase, year, subject and groups',expanded=True):
     present_phases=sorted(int(x) for x in computed.phase.dropna().unique())

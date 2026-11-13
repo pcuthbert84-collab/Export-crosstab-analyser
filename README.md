@@ -1,3 +1,5 @@
+> **Version 3.4:** Approved Year 9 ICT descriptor → Year 10 BTEC IT Pass/Merit/Distinction progress conversions, including same-cohort matching. See `RELEASE_v3_4.md`.
+
 > **Version 3.2:** Universal WT- to MA progress conversion for all subjects, U=0, N/A uses the configured fallback, baseline and current points in each DCPro workbook. See `RELEASE_v3_2.md`.
 
 > **Version 3.1:** English descriptor conversions and corrected progress-coverage audit. See `RELEASE_v3_1.md` and `ENGLISH_GRADE_CONVERSION_APPROVAL.md`.
@@ -108,3 +110,7 @@ A repository-managed `approved_subject_transitions.json` provides repeatable, re
 ## Version 2.9 mapping decisions
 
 See `RELEASE_v2_9.md`. Year 7 Drama is explicitly unmapped, while Y9 Science is an approved subject baseline for Y10 Combined Science, Biology, Chemistry and Physics. These do **not** approve new descriptor-to-GCSE equivalences.
+
+## v3.3 mapping policy updates
+
+See `RELEASE_v3_3.md` for approved subject relationships and the source-column audit; `RELEASE_v3_4.md` now resolves the ICT-to-BTEC IT conversion. GCSE-to-A-Level conversion remains pending. `progress_policy.py` labels within-course results without inventing missing grades. Subject relationships are configured in `approved_subject_transitions.json`; no student data is stored in that library. The repository does not include any real DCPro exports.

@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 import pandas as pd
 from grade_equivalences import baseline_equivalent
+from btec_it_grade_conversions import expected_btec_level, classify_btec_progress
 
 KS3_POINTS = {'WT-':1,'WT':2,'WT+':3,'ME-':4,'ME':5,'ME+':6,'EX-':7,'EX':8,'MA':9}
 GCSE_POINTS = {str(i):float(i) for i in range(1,10)} | {'U':0.0}
@@ -130,6 +131,9 @@ def classify_attainment(grade, enrolled_year=None):
 
 def progress(baseline, current, current_year=None, baseline_year=None, subject=None):
     if not baseline or not current:return None
+    btec_expected=expected_btec_level(baseline,current,subject)
+    if btec_expected is not None:
+        return classify_btec_progress(btec_expected,current)
     # School-approved equivalence applies to every subject, using the same
     # workbook's selected baseline/current points (or approved subject aliases).
     approved_expected = baseline_equivalent(baseline, current)
