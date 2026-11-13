@@ -64,37 +64,74 @@ def labelled_metric(container,label,value,caption=None):
         if caption:st.caption(caption)
 
 
-def show_performance_tables(frame,by,key):
-    """Attainment and progress are separate. Detailed and compact views share source data."""
-    att,prog,dist=summary_tables(frame,by,method)
-    if att.empty and prog.empty:
-        st.info('No valid attainment or progress data for this selection.')
+def show_performance_tables(frame, by, key):
+    """Render only the selected performance view, avoiding slow hidden tabs.
+
+    A horizontal radio is deliberate: st.tabs eagerly executes content in every
+    tab, even when hidden. A radio selection triggers Streamlit's normal rerun,
+    updates immediately, and computes only the selected table and export.
+    """
+    choice = st.radio(
+        'Assessment view', ['Attainment', 'Progress'], horizontal=True,
+        key=f'{key}_assessment_view',
+        help='Switches the visible results immediately; no Apply button is needed.',
+    )
+    kind = choice.lower()
+    # Summaries are derived only once for the current visible cohort and mode.
+    # Reuse is strictly session-local and the key includes all data and filters.
+    table_key = fingerprint(
+        'tables-v2',
+        [(str(row.student_id), str(row.year), str(row.subject),
+          str(row.attainment), str(row.progress), str(row.current_grade),
+          str(row.target_grade), str(row.met_cat4), str(row.met_cat4_75))
+         for row in frame.itertuples(index=False)],
+        list(by), method,
+    )
+    att, prog, dist = reuse(
+        st.session_state, f'presentation_{key}', table_key,
+        lambda: summary_tables(frame, by, method),
+    )
+    table = att if kind == 'attainment' else prog
+    if table.empty:
+        st.info(f'No valid {choice.lower()} results for this selection.')
         return
-    tabs=st.tabs(['Attainment','Progress'])
-    for idx,(label,table,kind) in enumerate([('Attainment',att,'attainment'),('Progress',prog,'progress')]):
-        with tabs[idx]:
-            if table.empty:
-                st.info(f'No valid {label.lower()} records for the selected filters.')
-                continue
-            l,r=st.columns([2.5,1],vertical_alignment='bottom')
-            with l:st.markdown(f'**{label} by subject**')
-            with r:detail=st.radio('View',['Compact','Detailed'],horizontal=True,key=f'{key}_{kind}_style',label_visibility='collapsed')
-            shown=compact_table(table,by,kind) if detail=='Compact' else detail_table(table,by,kind)
-            focus=st.selectbox('Focus on', ['All results','Weak / Acceptable','Good or above','Without judgement'],key=f'{key}_{kind}_focus',help='Filter this table and its Excel export by the calculated KHDA judgement.')
-            shown=focus_judgements(shown,focus)
-            st.markdown(grade_legend_html(),unsafe_allow_html=True)
-            if shown.empty:st.info('No subject rows match that KHDA focus. Try All results.')
-            else:table_display(shown,height=570)
-            if detail=='Detailed':
-                st.caption('Grade counts refer to assessment results. Target-predicted attainment uses available target grades; target-based progress percentages use their own eligible denominators.')
-                with st.expander('Grade frequencies — counts and percentages'):
-                    d=dist.copy()
-                    if not d.empty:
-                        d['Percent']=d['Percent'].map(percentage_label)
-                        d=d.rename(columns={'category':'Subject','subject':'Subject','year':'Year','Grade':'Grade','Count':'Number','Percent':'% of grades'})
-                        st.dataframe(d,hide_index=True,use_container_width=True)
-            st.download_button(f'Download {label.lower()} table · Excel',excel_bytes(shown),f'DBSJP_{key}_{kind}.xlsx',mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',key=f'{key}_{kind}_download')
-            st.caption('Number = unique students with valid grades for this measure. Combined subject categories may include multiple assessment results per student; the underlying numerator and denominator use eligible subject records.')
+    l, r = st.columns([2.5, 1], vertical_alignment='bottom')
+    with l:
+        st.markdown(f'**{choice} by subject**')
+    with r:
+        detail = st.radio(
+            'Table detail', ['Compact', 'Detailed'], horizontal=True,
+            key=f'{key}_{kind}_style', label_visibility='collapsed',
+        )
+    shown = compact_table(table, by, kind) if detail == 'Compact' else detail_table(table, by, kind)
+    focus = st.selectbox(
+        'Focus on',
+        ['All results', 'Weak / Acceptable', 'Good or above', 'Without judgement'],
+        key=f'{key}_{kind}_focus',
+        help='Filter this table and its Excel export by the calculated KHDA judgement.',
+    )
+    shown = focus_judgements(shown, focus)
+    st.markdown(grade_legend_html(), unsafe_allow_html=True)
+    if shown.empty:
+        st.info('No subject rows match that KHDA focus. Try All results.')
+    else:
+        table_display(shown, height=570)
+    if detail == 'Detailed':
+        st.caption('Grade counts refer to assessment results. Target-predicted attainment uses available target grades; target-based progress percentages use their own eligible denominators.')
+        with st.expander('Grade frequencies — counts and percentages'):
+            d = dist.copy()
+            if not d.empty:
+                d['Percent'] = d['Percent'].map(percentage_label)
+                d = d.rename(columns={'category':'Subject','subject':'Subject','year':'Year', 'Grade':'Grade','Count':'Number','Percent':'% of grades'})
+                st.dataframe(d, hide_index=True, use_container_width=True)
+    # Generation of the Excel export is delayed until the visible table is ready.
+    st.download_button(
+        f'Download {choice.lower()} table · Excel',
+        excel_bytes(shown), f'DBSJP_{key}_{kind}.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        key=f'{key}_{kind}_download',
+    )
+    st.caption('Number = unique students with valid grades for this measure. Combined subject categories may include multiple assessment results per student; the underlying numerator and denominator use eligible subject records.')
 
 
 def narrative_findings(s):
@@ -119,7 +156,7 @@ def narrative_findings(s):
 with st.sidebar:
     st.markdown('<div class="db-eyebrow">DUBAI BRITISH SCHOOL</div>',unsafe_allow_html=True)
     st.markdown('### Data Intelligence')
-    st.caption('Leadership dashboard · v2.4 · optimised')
+    st.caption('Leadership dashboard · v2.5 · responsive')
     st.divider()
     view=st.radio('Explore', [x[0] for x in NAV_ITEMS],index=0)
     st.divider()
