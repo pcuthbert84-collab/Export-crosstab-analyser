@@ -96,3 +96,7 @@ A repository-managed `approved_subject_transitions.json` provides repeatable, re
 ## Version 2.3 — reviewed transition mapping library
 
 `approved_subject_transitions.json` is a non-personal, version-controlled library. Its initial Year 6 Reading + Writing → Year 7 English example is **proposed**, not automatically approved. Once genuinely signed off by a school reviewer, set it to `approved` and add reviewer/date/rationale via a reviewed GitHub update; only then will the Streamlit mapping menu preselect it. Users can still disable or override the selection for the current session. Full directions and safeguards are in `APPROVAL_WORKFLOW.md`.
+
+## Version 2.9 mapping decisions
+
+See `RELEASE_v2_9.md`. Year 7 Drama is explicitly unmapped, while Y9 Science is an approved subject baseline for Y10 Combined Science, Biology, Chemistry and Physics. These do **not** approve new descriptor-to-GCSE equivalences.

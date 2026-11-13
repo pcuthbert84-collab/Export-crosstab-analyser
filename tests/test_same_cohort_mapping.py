@@ -67,3 +67,20 @@ class TestSameCohortMapping(unittest.TestCase):
         self.assertEqual(y11['Current grade, baseline missing'],1)
 
 if __name__=='__main__':unittest.main()
+
+
+def test_approved_cross_category_computing_to_ict_is_discovered():
+    from transition_library import load_library
+    lib=load_library()
+    rows=[]
+    for i in range(4):
+        sid=f'SYN{i}'
+        rows.append(dict(student_id=sid,year=7,phase=3,subject='ICT',category='ICT',source='synthetic',**{BASE:None,CUR:'4'}))
+        rows.append(dict(student_id=sid,year=7,phase=3,subject='Computing',category='Computing',source='synthetic',**{BASE:'Y6 ME',CUR:None}))
+    src=pd.DataFrame(rows)
+    result=derive(src,BASE,None,CUR,None,None,None)
+    assert not any(c['subject']=='ICT' for c in same_cohort_candidates(src,result,BASE,None))
+    matches=same_cohort_candidates(src,result,BASE,None,lib)
+    assert any(c['subject']=='ICT' and c['sources'][0]['subject']=='Computing' for c in matches)
+    new,audit=apply_same_cohort_mappings(result,src,{(7,'ICT'):['Computing']},BASE,None)
+    assert new.loc[new.subject.eq('ICT'),'progress'].eq('Expected').all()

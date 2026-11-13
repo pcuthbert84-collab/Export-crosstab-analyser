@@ -12,10 +12,12 @@ from progress_subject_mapping import grade_kind, _baseline_equivalent_point, _ma
 
 
 def same_cohort_candidates(records: pd.DataFrame, calculated: pd.DataFrame,
-                           baseline: str, fallback: str | None = None) -> list[dict]:
+                           baseline: str, fallback: str | None = None,
+                           approved_library: dict | None = None) -> list[dict]:
     if records.empty or calculated.empty:
         return []
     results = []
+    from transition_library import find_rule, is_explicitly_unmapped
     current_rows = calculated.loc[
         calculated['current_grade'].notna() & calculated['progress'].isna() & calculated['baseline_grade'].isna(),
         ['student_id','year','subject','category']
@@ -32,9 +34,22 @@ def same_cohort_candidates(records: pd.DataFrame, calculated: pd.DataFrame,
     if prior.empty:
         return []
     for (year, subject, category), group in current_rows.groupby(['year','subject','category']):
+        if approved_library and is_explicitly_unmapped(approved_library, year, subject):
+            continue
         ids = set(group.student_id.astype(str))
         sources = []
         p = prior.loc[prior.year.eq(year) & prior.category.eq(category) & prior.subject.ne(subject)]
+        # Explicitly approved subject transitions may cross reporting categories
+        # (e.g. ICT current vs Computing prior). General suggestions still
+        # require the same subject category to avoid misleading matches.
+        rule = next((r for r in (approved_library or {}).get('rules',[])
+                     if r.get('status')=='approved' and r.get('to_year')==int(year)
+                     and r.get('source_scope')=='same_cohort_prior_assessment'
+                     and str(r.get('current_subject','')).casefold().strip()==str(subject).casefold().strip()), None)
+        if rule:
+            approved_sources={s.casefold().strip() for s in rule['source_subjects']}
+            approved_prior=prior.loc[prior.year.eq(year) & prior.subject.astype(str).str.casefold().str.strip().isin(approved_sources)]
+            p=pd.concat([p,approved_prior],ignore_index=True).drop_duplicates(subset=['student_id','year','subject'])
         for source, candidate in p.groupby('subject'):
             matched = len(ids & set(candidate.student_id.astype(str)))
             if matched >= 3:

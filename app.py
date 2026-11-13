@@ -23,7 +23,7 @@ from year_detection import suggest_year
 from progress_subject_mapping import mapping_candidates, apply_subject_mappings
 from same_cohort_mapping import same_cohort_candidates, apply_same_cohort_mappings
 from progress_coverage import progress_coverage
-from transition_library import load_library, find_rule, proposal, proposal_download, normalise_subject
+from transition_library import load_library, find_rule, proposal, proposal_download, normalise_subject, is_explicitly_unmapped
 from overview_tables import summary_tables, compact_table, detail_table
 from dashboard_analytics import (
     PHASES, combined_assessments, filtered_cohort_summary, coverage_status,
@@ -158,7 +158,7 @@ def narrative_findings(s):
 with st.sidebar:
     st.markdown('<div class="db-eyebrow">DUBAI BRITISH SCHOOL</div>',unsafe_allow_html=True)
     st.markdown('### Data Intelligence')
-    st.caption('Leadership dashboard · v2.6 · progress audit')
+    st.caption('Leadership dashboard · v2.8 · approved subject transitions')
     st.divider()
     view=st.radio('Explore', [x[0] for x in NAV_ITEMS],index=0)
     st.divider()
@@ -272,10 +272,15 @@ requested_proposals=[]
 with st.expander('Optional · Progress subject transition library',expanded=False):
     st.caption('Approved rules can preselect earlier-year subjects. Suggested rules need review and do not run automatically. Any override applies only to this dashboard session.')
     candidates=reuse(st.session_state,'mapping_candidates',fingerprint(record_key,base,base2),lambda:mapping_candidates(records,base,None if base2=='None' else base2))
-    available=[item for item in candidates if item['missing_same_subject']>0]
+    available=[item for item in candidates if item['missing_same_subject']>0
+               and not is_explicitly_unmapped(transition_library,item['year'],item['subject'])]
     approved=[r for r in transition_library['rules'] if r['status']=='approved']
     proposed=[r for r in transition_library['rules'] if r['status']=='proposed']
-    st.caption(f'Library: {len(approved)} approved transition(s), {len(proposed)} awaiting review. Approvals are managed through reviewed GitHub changes, not this public dashboard.')
+    st.caption(f'Library: {len(approved)} approved transition(s), {len(proposed)} awaiting review, {len(transition_library.get("no_mapping_decisions", []))} explicitly unmapped. Approvals are managed through reviewed GitHub changes, not this public dashboard.')
+    if transition_library.get('no_mapping_decisions'):
+        with st.expander('School decisions: deliberately unmapped subjects',expanded=False):
+            for decision in transition_library['no_mapping_decisions']:
+                st.caption(f"Year {decision['to_year']} {decision['current_subject']}: no earlier-subject transition approved.")
     if not available:
         st.info('No eligible earlier-year subjects found with matching student IDs and available baseline grades. Upload adjacent year groups to configure a transition.')
     else:
@@ -332,25 +337,35 @@ if mapping_rules:
 # subject heading. This is not a match to the other cohort's current workbook.
 with st.expander('Optional · Match previous grades within the same cohort export', expanded=False):
     st.caption('Example: Year 7 English current grade with last year’s Reading/Writing grades in the Year 7 export, or Year 11 English with an English Language prior exam grade. Only applies if explicitly enabled; grade conversions must be approved.')
-    candidates=reuse(st.session_state,'same_cohort_candidates',fingerprint(calc_key,mapped_key),
-        lambda:same_cohort_candidates(records,computed,base,None if base2=='None' else base2))
+    candidates=reuse(st.session_state,'same_cohort_candidates',fingerprint(calc_key,mapped_key,transition_library),
+        lambda:same_cohort_candidates(records,computed,base,None if base2=='None' else base2,transition_library))
     if not candidates:
         st.info('No same-cohort subject transition candidates were detected for the selected assessments.')
         same_rules={}
     else:
         names=[f"Year {c['year']} · {c['subject']} ({c['missing']} current students without a baseline)" for c in candidates]
+        approved_indices=[i for i,c in enumerate(candidates) if find_rule(
+            transition_library,c['year'],c['subject'],[x['subject'] for x in c['sources']],
+            source_scope='same_cohort_prior_assessment')]
         selected_targets=st.multiselect('Choose the subject transitions to configure',range(len(candidates)),
-            format_func=lambda i:names[i],key='same_cohort_mapping_focus')
+            default=approved_indices,format_func=lambda i:names[i],key='same_cohort_mapping_focus')
         same_rules={}
         for choice_index in selected_targets:
             selected_candidate=candidates[choice_index]
             options=[x['subject'] for x in selected_candidate['sources']]
+            approved_same=find_rule(transition_library,selected_candidate['year'],
+                selected_candidate['subject'],options,source_scope='same_cohort_prior_assessment')
             with st.container(border=True):
                 st.markdown(f"**Year {selected_candidate['year']} · {selected_candidate['subject']}**")
                 st.caption('Prior-assessment subjects in this same cohort: '+', '.join(f"{x['subject']} ({x['students']})" for x in selected_candidate['sources']))
+                if approved_same:
+                    st.caption('Approved subject mapping: '+', '.join(approved_same['resolved_sources'])+'. This does not approve unsupported grade conversions.')
                 unique=f"{selected_candidate['year']}_{hashlib.sha256(selected_candidate['subject'].encode()).hexdigest()[:8]}"
-                selected=st.multiselect('Choose previous-assessment subject(s)',options,key=f'same_cohort_sources_{unique}')
-                enabled=st.checkbox('Use this mapping for the current session',value=False,key=f'same_cohort_enable_{unique}')
+                selected=st.multiselect('Choose previous-assessment subject(s)',options,
+                    default=(approved_same['resolved_sources'] if approved_same else []),
+                    key=f'same_cohort_sources_{unique}')
+                enabled=st.checkbox('Use this mapping for the current session',value=bool(approved_same),
+                    key=f'same_cohort_enable_{unique}')
                 if enabled and selected:
                     same_rules[(selected_candidate['year'],selected_candidate['subject'])]=selected
                 elif enabled:st.warning('Choose at least one previous-assessment subject.')

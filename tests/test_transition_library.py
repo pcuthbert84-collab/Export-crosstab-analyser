@@ -2,7 +2,7 @@ import copy
 import json
 import pytest
 from transition_library import (
-    load_library,validate_library,find_rule,proposal,proposal_download,
+    load_library,validate_library,find_rule,proposal,proposal_download,is_explicitly_unmapped,
 )
 
 
@@ -13,10 +13,14 @@ def approved():
                 approved_on='2026-11-13',rationale='Documented English cross-phase mapping')
 
 
-def test_seed_is_proposal_not_approved():
+def test_approved_same_cohort_rules_are_loaded_and_scoped():
     library=load_library()
-    assert library['rules'][0]['status']=='proposed'
+    assert len(library['rules']) == 7
+    assert all(r['status']=='approved' for r in library['rules'])
     assert find_rule(library,7,'English',['Reading','Writing']) is None
+    assert find_rule(library,7,'English',['Reading','Writing'],source_scope='same_cohort_prior_assessment')['resolved_sources']==['Reading','Writing']
+    assert find_rule(library,11,'English',['English Language'],source_scope='same_cohort_prior_assessment')['resolved_sources']==['English Language']
+    assert find_rule(library,10,'Science',['Science'],source_scope='same_cohort_prior_assessment') is None
 
 
 def test_approved_rule_resolves_uploaded_subject_case():
@@ -63,3 +67,32 @@ def test_proposals_never_contain_student_ids():
 def test_proposal_never_auto_applies():
     p=proposal(7,'English',['Reading','Writing'])
     assert find_rule({'schema_version':1,'rules':[p]},7,'English',['Reading','Writing']) is None
+
+
+def test_ict_approved_and_no_mappings_are_explicit():
+    lib=load_library()
+    rule=find_rule(lib,7,'ICT',['Computing'],source_scope='same_cohort_prior_assessment')
+    assert rule['resolved_sources']==['Computing']
+    assert rule['method']=='single'
+    for subject in ('Geography','History','Technology'):
+        assert is_explicitly_unmapped(lib,7,subject)
+        assert find_rule(lib,7,subject,['Computing'],source_scope='same_cohort_prior_assessment') is None
+    assert is_explicitly_unmapped(lib,7,'Drama')
+
+def test_conflicting_approval_and_no_mapping_rejected():
+    lib=load_library()
+    conflict=copy.deepcopy(lib)
+    conflict['no_mapping_decisions'].append(dict(conflict['no_mapping_decisions'][0],current_subject='ICT'))
+    with pytest.raises(ValueError):validate_library(conflict)
+
+
+def test_all_four_science_transitions_are_approved_but_no_conversions_added():
+    lib=load_library()
+    for sub in ('Science - Combined','Science - Biology','Science - Chemistry','Science - Physics'):
+        rule=find_rule(lib,10,sub,['Science'],source_scope='same_cohort_prior_assessment')
+        assert rule is not None
+        assert rule['resolved_sources']==['Science']
+        assert rule['method']=='single'
+        assert rule['from_year']==9
+    assert is_explicitly_unmapped(lib,7,'Drama')
+    assert not is_explicitly_unmapped(lib,10,'Science - Combined')

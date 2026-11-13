@@ -5,10 +5,138 @@
       "from_year": 6,
       "to_year": 7,
       "current_subject": "English",
-      "source_subjects": ["Reading", "Writing"],
+      "source_subjects": [
+        "Reading",
+        "Writing"
+      ],
       "method": "mean_available",
-      "status": "proposed",
-      "rationale": "Cross-phase example for subject leader review; not yet approved."
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Use average of available Year 6 Reading and Writing prior grades, recorded in the Year 7 export, as Year 7 English baseline. Does not authorise new grade conversions."
+    },
+    {
+      "from_year": 10,
+      "to_year": 11,
+      "current_subject": "English",
+      "source_subjects": [
+        "English Language"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Use Year 10 English Language prior exam grade recorded in Year 11 export as Year 11 English baseline, preserving existing valid baseline. Does not authorise new grade conversions."
+    },
+    {
+      "from_year": 6,
+      "to_year": 7,
+      "current_subject": "ICT",
+      "source_subjects": [
+        "Computing"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Year 7 ICT current grades compared with Year 6 Computing prior-assessment grade recorded in same Year 7 export; subject approval only, not grade conversion approval."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Science - Combined",
+      "source_subjects": [
+        "Science"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Compare prior Year 9 Science DP3 result in the same Year 10 cohort export against current Year 10 Science - Combined grade, only if an independently approved grade conversion exists. The prior Science result can be reused as a baseline for distinct subjects; never count the baseline itself as a current result."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Science - Biology",
+      "source_subjects": [
+        "Science"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Compare prior Year 9 Science DP3 result in the same Year 10 cohort export against current Year 10 Science - Biology grade, only if an independently approved grade conversion exists. The prior Science result can be reused as a baseline for distinct subjects; never count the baseline itself as a current result."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Science - Chemistry",
+      "source_subjects": [
+        "Science"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Compare prior Year 9 Science DP3 result in the same Year 10 cohort export against current Year 10 Science - Chemistry grade, only if an independently approved grade conversion exists. The prior Science result can be reused as a baseline for distinct subjects; never count the baseline itself as a current result."
+    },
+    {
+      "from_year": 9,
+      "to_year": 10,
+      "current_subject": "Science - Physics",
+      "source_subjects": [
+        "Science"
+      ],
+      "method": "single",
+      "source_scope": "same_cohort_prior_assessment",
+      "status": "approved",
+      "approved_by": "DBSJP assessment lead (user decision)",
+      "approved_on": "2026-11-13",
+      "rationale": "Compare prior Year 9 Science DP3 result in the same Year 10 cohort export against current Year 10 Science - Physics grade, only if an independently approved grade conversion exists. The prior Science result can be reused as a baseline for distinct subjects; never count the baseline itself as a current result."
+    }
+  ],
+  "no_mapping_decisions": [
+    {
+      "from_year": 6,
+      "to_year": 7,
+      "current_subject": "Geography",
+      "status": "no_mapping",
+      "decided_by": "DBSJP assessment lead (user decision)",
+      "decided_on": "2026-11-13",
+      "rationale": "No Year 6 baseline mapping approved for Year 7 Geography; leave progress unclassified where no direct valid baseline exists."
+    },
+    {
+      "from_year": 6,
+      "to_year": 7,
+      "current_subject": "History",
+      "status": "no_mapping",
+      "decided_by": "DBSJP assessment lead (user decision)",
+      "decided_on": "2026-11-13",
+      "rationale": "No Year 6 baseline mapping approved for Year 7 History; leave progress unclassified where no direct valid baseline exists."
+    },
+    {
+      "from_year": 6,
+      "to_year": 7,
+      "current_subject": "Technology",
+      "status": "no_mapping",
+      "decided_by": "DBSJP assessment lead (user decision)",
+      "decided_on": "2026-11-13",
+      "rationale": "No Year 6 baseline mapping approved for Year 7 Technology; leave progress unclassified where no direct valid baseline exists."
+    },
+    {
+      "from_year": 6,
+      "to_year": 7,
+      "current_subject": "Drama",
+      "status": "no_mapping",
+      "decided_by": "DBSJP assessment lead (user decision)",
+      "decided_on": "2026-11-13",
+      "rationale": "Explicitly leave Year 7 Drama unmapped; reviewed Year 7 and Year 6 DCPro source headings do not contain an equivalent Year 6 Drama grade."
     }
   ]
 }
