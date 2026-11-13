@@ -1,70 +1,72 @@
-# DBSJP Data Intelligence — V1 development prototype
+# DBSJP Data Intelligence — Leadership Dashboard v2.0
 
-A Streamlit prototype for DCPro Excel crosstab uploads, subject attainment and progress, combined categories, PPM intervention lists, student-group analysis, CAT4 target achievement, value added and basic downloadable summaries.
+A Streamlit development prototype for **subject analysis, school/phase overview, progress and attainment, KHDA-style judgements, PPM student discussions, group comparisons and grade-based target measures**.
 
-## Getting started locally
+## IMPORTANT — NOT APPROVED FOR IDENTIFIABLE STUDENT DATA
+
+This is a **development prototype for synthetic or properly anonymised records**. It does **not** have school-approved hosting, Microsoft Entra ID authentication, role-based permissions, production data lifecycle controls, independent security testing, or regulatory/privacy sign-off. Do not upload live or identifiable student records to a publicly hosted instance. It is not production-ready.
+
+## Deployment to Streamlit Community Cloud (fictional data only)
+
+1. Create a new GitHub repository for the prototype. Do not upload real student exports, historical Data Packs containing student data, personal secrets or credentials.
+2. Extract the ZIP and upload `app.py`, `engine.py`, `overview_tables.py`, `dashboard_analytics.py`, `dashboard_ui.py`, `dashboard_exports.py`, `requirements.txt`, and `.streamlit/config.toml` to the repository root, preserving the `.streamlit` folder.
+3. Create a Streamlit app referencing the repo and set **Main file path** to `app.py`.
+4. Upload the supplied **SYNTHETIC_DCPro_Year8.xlsx** file to check the interface.
+5. Confirm the year group, baseline, current grade and target columns. Open the sidebar modules.
+
+Locally, once dependencies can be installed:
 
 ```bash
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Deploy to GitHub and Streamlit Community Cloud (synthetic data only)
+## Quick guide
 
-1. Create a new GitHub repository (preferably private).
-2. Upload `app.py`, `engine.py` and `requirements.txt` at the repository root.
-3. In Streamlit Community Cloud, create an app from the repository. Set the entrypoint/main file to `app.py`.
-4. Open the deployed app. Upload **synthetic or properly anonymised** DCPro spreadsheet exports, confirm each year group and select preferred/fallback assessment columns.
+- **School Overview:** uploaded-population KPI cards, comparative subject chart, KHDA judgement mix, descriptive findings, and Attainment / Progress tabs.
+- **Subject Analysis:** subject-year, category-year and year-subject comparisons; chart; compact/detailed tables; individual-subject grade distribution.
+- **PPM & Interventions:** concern counts, subject hotspots, multi-subject student priorities, student evidence drill-down and Excel exports.
+- **Student Groups:** group-by-subject comparison charts, full-row judgement colours and Excel download.
+- **Value Added & CAT4:** target pair counts, target achievement rates and actual-minus-target differences.
+- **Exam Results:** clearly identified as a future public-exam import, not an invented result from DP grades.
+- **Reports & Data Pack:** aggregate PDF and Excel exports only. The 87-table historical Data Pack is **not yet implemented**.
+- **Filters:** expandable phase / year / reporting subject / individual subject / group, with year options restricted by phase. Phase 1 processing is deferred.
 
-**Do not deploy with identifiable student records or real school data on Community Cloud without institutional approval, a security/privacy review, Microsoft 365 sign-in, role-based permissions, appropriate hosting and retention controls.** This V1 does not implement those protections.
+## KHDA-style colour legend
 
-## Features included
+| Judgement | Colour |
+|---|---|
+| Outstanding | Blue |
+| Very Good | Green |
+| Good | Yellow |
+| Acceptable | Orange |
+| Weak | Red |
 
-- Multiple DCPro `.xlsx` files, optional workbook-sheet selection, manual year-group confirmation.
-- Current and baseline assessment selections with one fallback each, plus target/challenge target selections.
-- Grade parsing: GCSE 1–9/U, KS3 descriptors, BTEC labels, double GCSE pairs, and limited A Level cases.
-- Individual subject, combined-category, year-group and student-group breakdowns.
-- English deduplication: generic English supersedes Reading/Writing for combined headlines.
-- Attainment, progress and DBSJP KHDA-style judgements; CAT4 target achievement and grade-based value added.
-- PPM concern tables and Excel exports; basic PDF summary.
+Rows without a valid judgement have no status colour. Only eligible grades contribute to a calculation; denominators differ by measure.
 
-## Important limitations
+## Tests and review log
 
-1. **Not production-ready for personal information.** No Microsoft 365 login, authorization or secure production hosting. The application does not intentionally save uploaded student data, but upstream hosting, caching and downloads require a privacy assessment.
-2. No EYFS, NGRT, GL/IBT/external importers, historical Data Pack matching, full 87-table PDF generator or public examination results import yet.
-3. Grade conversion map remains provisional for A Level, BTEC, year-prefixed descriptor transitions and other cross-qualification comparisons. Unsupported progress is blank rather than guessed. Crucially, KS3 ME → GCSE 4 is approved as expected progress.
-4. The subject/year allocations and comparisons must be validated against synthetic fixtures and user-approved mapping rules. Where both source and fallback have a grade, first priority always wins.
-5. One grade column selection is made across subjects; absent columns are ignored. Different exports may have different assessment headers. Source matching will be expanded later.
-6. Historical or incomplete phase/whole-school data is not represented as a complete school population.
+See [IMPROVEMENT_CYCLES.md](IMPROVEMENT_CYCLES.md) for the **ten distinct review-and-improvement cycles** and validation outcomes.
 
-## Test locally
+To run verification tests:
 
 ```bash
-python -m unittest discover -s tests -v
+PYTHONPATH=. python -m pytest -q
+python -m py_compile app.py dashboard_ui.py dashboard_analytics.py dashboard_exports.py engine.py overview_tables.py
 ```
 
-## Version 2 roadmap
+The final local run passed **31 Python tests**, plus 6 subtests, and an end-to-end **synthetic calculation/export smoke test**. Browser-level Streamlit validation is **still outstanding**, because Streamlit was unavailable in the test container and could not be installed from the package index. Validate the rendered UI on the deployed test app before considering acceptance.
 
-- Official assessment-column mapping wizard by subject and year.
-- Complete conversion-review UI and approved grade mappings.
-- Public examination grade distribution/cumulative thresholds with qualification detection.
-- Data Pack PDF based on the uploaded 2025–26 87-table Word template, historical pack import, blank-table export toggle.
-- Optional EYFS and external tests including NGRT.
-- Microsoft Entra ID / Microsoft 365 authentication, role-based access, school-approved deployment and compliance review.
+## Important calculation and scope caveats
 
-## Version 1.1 — Cleaner performance tables
+- Only uploaded year groups are represented; partial uploads must never be labelled complete whole-school outcomes.
+- Combined-subject percentages use valid assessment records. The visible `Number` is unique students with eligible grades. For English, a valid generic English grade supersedes Reading/Writing for combined analysis.
+- The KHDA-style system uses **whole-number, half-up rounded percentages**, with a minimum of 5 valid assessment results before showing a judgement; these are **calculated DBSJP indicators, not official KHDA judgements**.
+- The progress exception **KS3 ME → GCSE 4 = Expected** is explicitly supported. Other cross-grade-set conversions remain provisional until approved.
+- Standard target and challenge target measures have separate eligible denominators; missing values do not turn into zeros.
+- Grade-based value added is a difference from target, *not* a statistically adjusted value-added measure.
+- The current PDF is an assessment summary, **not** the final Data Pack.
 
-The School Overview and Subject Analysis now use **two tabs**, Attainment and Progress, with a **Compact / Detailed** choice within each tab.
+## Production security work required before live use
 
-- **Compact Attainment:** valid student count, valid assessment-record count, meeting-or-above %, exceeding %, KHDA-style judgement.
-- **Detailed Attainment:** adds a count for each recorded current grade, plus percentages *predicted from target grades* to be meeting-or-above and exceeding, and the number of valid target results.
-- **Compact Progress:** students with comparable baseline and current grades, eligible progress-record count, expected-or-better %, better %, and KHDA-style judgement.
-- **Detailed Progress:** adds numbers classified Less / Expected / Better, current grade counts, Met CAT4 %, Met Challenge Target % and eligible target counts.
-- Whole percentages are displayed with half-up rounding. Categories with no valid current or progress results are hidden from these presentation tables. Excel buttons export the currently selected view.
-- **Interpretation:** `Students with grades` counts unique students; `Grade results (n)` counts valid subject-assessment records. These can differ for combined categories. `Target-predicted` is the proportion of the valid standard-target grades that are at or above the curriculum threshold, not a forecast made by an AI model. The target-hit measures use their own eligible current-grade/target pairs, which may have different denominators from progress.
-
-The school reports and data-pack generation are **not** changed by this version. The production access-control and security work remains outstanding; synthetic/anonymised data only.
-
-### v1.3 phase filtering
-
-The expandable **Filters** panel now includes a multi-select **Phases** filter: Phase 1 (FS1–FS2, planned for Version 2), Phase 2 (Years 1–6), Phase 3 (Years 7–11), and Phase 4 (Years 12–13). This works together with the existing year-group, subject and student-group filters across all dashboard modules. Phase 1 is selectable but has no EYFS data processing in this release.
+School-approved hosting and data region; Entra sign-in with MFA; server-side role and subject/year/class permissions; download restrictions; safe audit logs; per-session memory isolation; upload malware/content scanning and limits; deletion testing; privacy impact assessment; independent penetration/security assessment; school approval.
